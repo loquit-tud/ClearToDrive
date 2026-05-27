@@ -52,11 +52,34 @@ jobs:
       - name: Flutter test
         run: flutter test
 
-      - name: Build Android debug APK (arm64)
-        run: flutter build apk --debug --target-platform android-arm64
+      - name: Build Android debug APK (arm64) + collect artifact
+        shell: bash
+        run: |
+          set -u
+
+          echo "== Flutter build apk (debug, android-arm64) =="
+          # Flutter sometimes exits after Gradle produced an APK but it can't
+          # locate it. We don't fail immediately; we validate by searching.
+          flutter build apk --debug --target-platform android-arm64 || true
+
+          echo
+          echo "== Search for APKs in workspace =="
+          mapfile -t apks < <(find . -type f -name "*.apk" | sort)
+          if [ "${#apks[@]}" -eq 0 ]; then
+            echo "No .apk files found."
+            exit 1
+          fi
+
+          printf '%s\n' "${apks[@]}"
+
+          echo
+          echo "== Copy first APK to build/ci-artifacts/ClearToDrive-debug.apk =="
+          mkdir -p build/ci-artifacts
+          cp -f "${apks[0]}" build/ci-artifacts/ClearToDrive-debug.apk
+          ls -lah build/ci-artifacts/ClearToDrive-debug.apk
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v6
         with:
           name: ClearToDrive-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/ci-artifacts/ClearToDrive-debug.apk
