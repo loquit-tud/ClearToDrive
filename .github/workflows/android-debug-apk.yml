@@ -1,0 +1,59 @@
+name: Build Android Debug APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # If the repo contains a pinned Flutter SDK folder, prefer it.
+      # Otherwise, fall back to stable Flutter via subosito/flutter-action.
+      - name: Set Flutter source (repo-pinned if present)
+        id: flutter_src
+        shell: bash
+        run: |
+          if [ -x "./.flutter-sdk/bin/flutter" ]; then
+            echo "mode=pinned" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=action" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Flutter (stable)
+        if: steps.flutter_src.outputs.mode == 'action'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Add pinned Flutter to PATH
+        if: steps.flutter_src.outputs.mode == 'pinned'
+        shell: bash
+        run: echo "${GITHUB_WORKSPACE}/.flutter-sdk/bin" >> "$GITHUB_PATH"
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: Flutter test
+        run: flutter test
+
+      - name: Build Android debug APK (arm64)
+        run: flutter build apk --debug --target-platform android-arm64
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClearToDrive-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
