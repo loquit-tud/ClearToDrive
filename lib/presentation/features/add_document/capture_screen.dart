@@ -20,9 +20,16 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
       ref.read(selectedDocumentTypeProvider) ?? DocumentType.rca;
 
   Future<void> _run(Future<void> Function() action) async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
       await action();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.actionFailedTryAgain)),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -40,10 +47,16 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
 
   Future<void> _import() async {
     await _run(() async {
+      final l10n = AppLocalizations.of(context);
       final draft = await ref
           .read(scanAndExtractUseCaseProvider)
           .fromGallery(typeHint: _type);
       ref.read(confirmDraftProvider.notifier).state = draft;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.galleryImportTestInfo)),
+        );
+      }
       if (mounted) context.push('/confirm');
     });
   }

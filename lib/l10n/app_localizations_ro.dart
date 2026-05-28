@@ -73,6 +73,10 @@ class AppLocalizationsRo extends AppLocalizations {
   String get importGallery => 'Importă din galerie';
 
   @override
+  String get galleryImportTestInfo =>
+      'Importul real din galerie va fi adăugat într-o versiune următoare. Acesta este un flux de test.';
+
+  @override
   String get manualEntry => 'Introducere manuală';
 
   @override
@@ -235,6 +239,9 @@ class AppLocalizationsRo extends AppLocalizations {
   @override
   String get testNotificationFailed =>
       'Nu am putut trimite notificarea de test';
+
+  @override
+  String get actionFailedTryAgain => 'Nu a mers. Încearcă din nou.';
 
   @override
   String get onboardingComplete => 'Începe';

@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'Import from gallery'**
   String get importGallery;
 
+  /// No description provided for @galleryImportTestInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Real gallery import will be added in a later version. This is a test flow.'**
+  String get galleryImportTestInfo;
+
   /// No description provided for @manualEntry.
   ///
   /// In en, this message translates to:
@@ -529,6 +535,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send test notification'**
   String get testNotificationFailed;
+
+  /// No description provided for @actionFailedTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get actionFailedTryAgain;
 
   /// No description provided for @onboardingComplete.
   ///

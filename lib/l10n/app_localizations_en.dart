@@ -73,6 +73,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importGallery => 'Import from gallery';
 
   @override
+  String get galleryImportTestInfo =>
+      'Real gallery import will be added in a later version. This is a test flow.';
+
+  @override
   String get manualEntry => 'Manual entry';
 
   @override
@@ -234,6 +238,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get testNotificationFailed => 'Couldn\'t send test notification';
+
+  @override
+  String get actionFailedTryAgain => 'Something went wrong. Please try again.';
 
   @override
   String get onboardingComplete => 'Get started';

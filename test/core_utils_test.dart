@@ -47,6 +47,14 @@ void main() {
       );
       expect(status, ExpiryStatus.valid);
     });
+
+    test('daysUntilExpiry matches expected countdown (93 days)', () {
+      final days = ExpiryStatusCalculator.daysUntilExpiry(
+        DateTime(2026, 8, 29),
+        referenceDate: DateTime(2026, 5, 28),
+      );
+      expect(days, 93);
+    });
   });
 
   group('ReminderDateCalculator', () {
