@@ -17,7 +17,8 @@ void main() {
     final imagePath = await _tempImagePath();
     final importUseCase = ImportFromGalleryUseCase(_StubGalleryScanner(imagePath));
 
-    final router = GoRouter(
+    late final GoRouter router;
+    router = GoRouter(
       initialLocation: '/add',
       routes: [
         GoRoute(path: '/add', builder: (_, _) => const AddDocumentChooserScreen()),
@@ -47,14 +48,9 @@ void main() {
 
     await tester.tap(find.text('Importă din galerie'));
     await tester.pump();
-    for (var i = 0; i < 20; i++) {
-      await tester.pump(const Duration(milliseconds: 50));
-      if (find.textContaining('Am importat imaginea').evaluate().isNotEmpty) {
-        break;
-      }
-    }
+    await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(ConfirmScreen), findsOneWidget);
+    expect(router.state.matchedLocation, '/confirm');
     expect(find.textContaining('Am importat imaginea'), findsOneWidget);
   });
 }

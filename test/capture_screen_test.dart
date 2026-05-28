@@ -49,11 +49,13 @@ class _TestExtractor implements DocumentFieldExtractor {
   }
 }
 
+GoRouter? _testRouter;
+
 Widget _app({
   required List<Override> overrides,
   String initialLocation = '/add/capture',
 }) {
-  final router = GoRouter(
+  _testRouter = GoRouter(
     initialLocation: initialLocation,
     routes: [
       GoRoute(path: '/home', builder: (_, _) => const Scaffold(body: Text('home'))),
@@ -61,6 +63,7 @@ Widget _app({
       GoRoute(path: '/confirm', builder: (_, _) => const ConfirmScreen()),
     ],
   );
+  final router = _testRouter!;
 
   return ProviderScope(
     overrides: overrides,
@@ -130,7 +133,7 @@ void main() {
     }
 
     expect(scanner.galleryCalls, 1);
-    expect(find.byType(ConfirmScreen), findsOneWidget);
+    expect(_testRouter!.state.matchedLocation, '/confirm');
     expect(find.textContaining('Am importat imaginea'), findsOneWidget);
   });
 

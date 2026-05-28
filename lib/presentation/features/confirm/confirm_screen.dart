@@ -38,16 +38,12 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       _loadingEdit = true;
       _loadEdit();
     } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _applyDraftFromProvider());
+      final draft = ref.read(confirmDraftProvider);
+      if (draft != null) {
+        _draftApplied = true;
+        _initFromDraft(draft);
+      }
     }
-  }
-
-  void _applyDraftFromProvider() {
-    if (!mounted || _draftApplied || widget.editDocumentId != null) return;
-    final draft = ref.read(confirmDraftProvider);
-    if (draft == null) return;
-    _draftApplied = true;
-    setState(() => _initFromDraft(draft));
   }
 
   @override
