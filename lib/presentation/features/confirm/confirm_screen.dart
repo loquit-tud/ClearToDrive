@@ -29,6 +29,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   String? _vehicleId;
   var _saving = false;
   var _loadingEdit = false;
+  var _draftApplied = false;
 
   @override
   void initState() {
@@ -36,7 +37,17 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     if (widget.editDocumentId != null) {
       _loadingEdit = true;
       _loadEdit();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _applyDraftFromProvider());
     }
+  }
+
+  void _applyDraftFromProvider() {
+    if (!mounted || _draftApplied || widget.editDocumentId != null) return;
+    final draft = ref.read(confirmDraftProvider);
+    if (draft == null) return;
+    _draftApplied = true;
+    setState(() => _initFromDraft(draft));
   }
 
   @override
@@ -127,15 +138,22 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (widget.editDocumentId == null) {
+    if (widget.editDocumentId == null && !_draftApplied) {
       final draft = ref.watch(confirmDraftProvider);
-      if (draft == null && _type == null) {
+      if (draft == null) {
         return Scaffold(
           appBar: AppBar(),
           body: Center(child: Text(l10n.confirmMissingDraft)),
         );
       }
-      if (draft != null) _initFromDraft(draft);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _draftApplied) return;
+        setState(() {
+          _draftApplied = true;
+          _initFromDraft(draft);
+        });
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_type == null) {

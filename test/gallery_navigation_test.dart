@@ -39,21 +39,18 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     await tester.tap(find.text('ITP'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     await tester.tap(find.text('Importă din galerie'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 500));
 
-    expect(
-      find.text(
-        'Am importat imaginea. Verifică documentul și completează data expirării.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Tip document'), findsOneWidget);
+    expect(find.textContaining('Am importat imaginea'), findsOneWidget);
   });
 }
 

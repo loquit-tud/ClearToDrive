@@ -101,8 +101,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(scanner.scanCalls, 1);
+    expect(find.text('Tip document'), findsOneWidget);
     expect(find.text('B 123 ABC'), findsWidgets);
-    expect(find.text('Verifică datele'), findsOneWidget);
   });
 
   testWidgets('gallery success navigates to confirm with helper text', (tester) async {
@@ -124,12 +124,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(scanner.galleryCalls, 1);
-    expect(
-      find.text(
-        'Am importat imaginea. Verifică documentul și completează data expirării.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Tip document'), findsOneWidget);
+    expect(find.textContaining('Am importat imaginea'), findsOneWidget);
   });
 
   testWidgets('gallery cancel stays on capture screen', (tester) async {
