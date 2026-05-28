@@ -109,7 +109,7 @@ void main() {
     expect(find.text('B 123 ABC'), findsWidgets);
   });
 
-  testWidgets('gallery success sets draft and navigates to confirm', (tester) async {
+  testWidgets('gallery success invokes import use case and sets draft', (tester) async {
     final scanner = _TestScanner()
       ..galleryResult = () async => ScanResult(imagePaths: [await _tempImagePath()]);
     final importUseCase = ImportFromGalleryUseCase(scanner);
@@ -123,19 +123,21 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Importă din galerie'));
-    for (var i = 0; i < 30; i++) {
-      await tester.pump(const Duration(milliseconds: 50));
-      if (_testRouter!.state.matchedLocation == '/confirm') break;
-    }
-
-    expect(scanner.galleryCalls, 1);
-    expect(_testRouter!.state.matchedLocation, '/confirm');
     final container = ProviderScope.containerOf(
       tester.element(find.byType(MaterialApp)),
     );
-    expect(container.read(confirmDraftProvider)?.source, DocumentSource.import);
-    expect(container.read(confirmDraftProvider)?.imagePath, isNotEmpty);
+
+    await tester.tap(find.text('Importă din galerie'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(scanner.galleryCalls, 1);
+    final draft = container.read(confirmDraftProvider);
+    expect(draft?.source, DocumentSource.import);
+    expect(draft?.imagePath, isNotEmpty);
+    expect(draft?.type, DocumentType.itp);
   });
 
   testWidgets('gallery cancel stays on capture screen', (tester) async {

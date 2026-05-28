@@ -46,7 +46,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
 
     expect(find.textContaining('Am importat imaginea'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
