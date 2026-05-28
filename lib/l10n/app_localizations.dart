@@ -230,6 +230,30 @@ abstract class AppLocalizations {
   /// **'Image imported. Verify the document and enter the expiry date.'**
   String get galleryImportHelper;
 
+  /// No description provided for @ocrImportSuccessHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'I found a few details automatically. Check them before saving.'**
+  String get ocrImportSuccessHelper;
+
+  /// No description provided for @ocrImportFailureHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the data automatically. Enter the expiry date manually.'**
+  String get ocrImportFailureHelper;
+
+  /// No description provided for @ocrWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'OCR can be wrong. You must verify the data yourself.'**
+  String get ocrWarning;
+
+  /// No description provided for @ocrVerifyManually.
+  ///
+  /// In en, this message translates to:
+  /// **'check manually'**
+  String get ocrVerifyManually;
+
   /// No description provided for @galleryImportFailed.
   ///
   /// In en, this message translates to:

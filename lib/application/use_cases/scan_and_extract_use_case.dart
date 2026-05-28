@@ -1,6 +1,9 @@
 import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
+import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
+
+enum DocumentAssistStatus { none, ocrSuccess, ocrNoData }
 
 class ConfirmDraft {
   const ConfirmDraft({
@@ -11,6 +14,9 @@ class ConfirmDraft {
     this.imagePath,
     this.documentId,
     this.vehicleId,
+    this.assistStatus = DocumentAssistStatus.none,
+    this.needsManualReview = false,
+    this.ocrRawText = '',
   });
 
   final DocumentType type;
@@ -20,6 +26,9 @@ class ConfirmDraft {
   final String? imagePath;
   final String? documentId;
   final String? vehicleId;
+  final DocumentAssistStatus assistStatus;
+  final bool needsManualReview;
+  final String ocrRawText;
 
   ConfirmDraft copyWith({
     DocumentType? type,
@@ -29,6 +38,9 @@ class ConfirmDraft {
     String? imagePath,
     String? documentId,
     String? vehicleId,
+    DocumentAssistStatus? assistStatus,
+    bool? needsManualReview,
+    String? ocrRawText,
   }) {
     return ConfirmDraft(
       type: type ?? this.type,
@@ -38,6 +50,9 @@ class ConfirmDraft {
       imagePath: imagePath ?? this.imagePath,
       documentId: documentId ?? this.documentId,
       vehicleId: vehicleId ?? this.vehicleId,
+      assistStatus: assistStatus ?? this.assistStatus,
+      needsManualReview: needsManualReview ?? this.needsManualReview,
+      ocrRawText: ocrRawText ?? this.ocrRawText,
     );
   }
 }
@@ -57,15 +72,6 @@ class ScanAndExtractUseCase {
     );
   }
 
-  Future<ConfirmDraft> fromGallery({required DocumentType typeHint}) async {
-    final scan = await _scanner.pickFromGallery();
-    return _toDraft(
-      scan: scan,
-      typeHint: typeHint,
-      source: DocumentSource.import,
-    );
-  }
-
   Future<ConfirmDraft> _toDraft({
     required ScanResult scan,
     required DocumentType typeHint,
@@ -81,8 +87,8 @@ class ScanAndExtractUseCase {
       );
     }
 
-    final extraction = await _extractor.extract(
-      imagePath: imagePath,
+    final extraction = await _extractor.extractFromText(
+      ocrText: OcrTextResult.success(_fakeScanText(typeHint)),
       typeHint: typeHint,
     );
 
@@ -93,6 +99,15 @@ class ScanAndExtractUseCase {
       source: source,
       imagePath: imagePath,
     );
+  }
+
+  String _fakeScanText(DocumentType typeHint) {
+    final label = switch (typeHint) {
+      DocumentType.rca => 'RCA',
+      DocumentType.itp => 'ITP inspectie tehnica',
+      DocumentType.rovinieta => 'Rovinieta',
+    };
+    return '$label B 123 ABC valabil pana 31.12.2026';
   }
 }
 

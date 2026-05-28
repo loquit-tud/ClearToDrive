@@ -28,6 +28,8 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   String? _imagePath;
   String? _documentId;
   String? _vehicleId;
+  DocumentAssistStatus _assistStatus = DocumentAssistStatus.none;
+  var _needsManualReview = false;
   var _saving = false;
   var _loadingEdit = false;
   var _editLoadStarted = false;
@@ -85,6 +87,8 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       _imagePath = detail.document.imagePath;
       _documentId = detail.document.id;
       _vehicleId = detail.document.vehicleId;
+      _assistStatus = DocumentAssistStatus.none;
+      _needsManualReview = false;
       _loadingEdit = false;
     });
   }
@@ -97,6 +101,8 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     _imagePath ??= draft.imagePath;
     _documentId ??= draft.documentId;
     _vehicleId ??= draft.vehicleId;
+    _assistStatus = draft.assistStatus;
+    _needsManualReview = draft.needsManualReview;
   }
 
   Future<void> _pickDate() async {
@@ -153,6 +159,20 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       _source == DocumentSource.import &&
       _imagePath != null &&
       !_imagePath!.startsWith('fake://');
+
+  bool get _isOcrImport =>
+      _isGalleryImport && _assistStatus != DocumentAssistStatus.none;
+
+  String _helperMessage(AppLocalizations l10n) {
+    if (_assistStatus == DocumentAssistStatus.ocrSuccess) {
+      return l10n.ocrImportSuccessHelper;
+    }
+    if (_assistStatus == DocumentAssistStatus.ocrNoData) {
+      return l10n.ocrImportFailureHelper;
+    }
+    if (_isGalleryImport) return l10n.galleryImportHelper;
+    return l10n.confirmDisclaimer;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,10 +241,16 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_isGalleryImport)
-              DisclaimerBanner(message: l10n.galleryImportHelper)
-            else
-              DisclaimerBanner(message: l10n.confirmDisclaimer),
+            DisclaimerBanner(message: _helperMessage(l10n)),
+            if (_isOcrImport) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.ocrWarning,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             DocumentImagePreview(imagePath: _imagePath),
             if (_imagePath != null && !_imagePath!.startsWith('fake://'))
@@ -240,6 +266,10 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
               decoration: InputDecoration(
                 labelText: l10n.licensePlate,
                 hintText: 'B 123 ABC',
+                helperText:
+                    _needsManualReview && _plateController!.text.isNotEmpty
+                    ? l10n.ocrVerifyManually
+                    : null,
               ),
               textCapitalization: TextCapitalization.characters,
             ),
@@ -262,6 +292,15 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
                 ),
               ),
             ),
+            if (_needsManualReview && _expiryDate != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                l10n.ocrVerifyManually,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             FilledButton(
               onPressed: _saving ? null : _save,

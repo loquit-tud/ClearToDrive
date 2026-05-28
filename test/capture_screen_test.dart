@@ -2,6 +2,7 @@ import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
+import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/features/add_document/capture_screen.dart';
@@ -33,9 +34,10 @@ class _TestScanner implements DocumentScannerService {
 
 class _TestExtractor implements DocumentFieldExtractor {
   @override
-  Future<ExtractionResult> extract({
-    required String imagePath,
+  Future<ExtractionResult> extractFromText({
+    required OcrTextResult ocrText,
     DocumentType? typeHint,
+    DateTime? referenceDate,
   }) async {
     return ExtractionResult(
       licensePlate: 'B 123 ABC',
@@ -44,6 +46,15 @@ class _TestExtractor implements DocumentFieldExtractor {
       confidence: 0.9,
       rawText: 'mock',
     );
+  }
+}
+
+class _TestOcrService implements DocumentOcrService {
+  const _TestOcrService();
+
+  @override
+  Future<OcrTextResult> recognizeText(String imagePath) async {
+    return const OcrTextResult.success('ITP B 123 ABC valabil pana 31.12.2026');
   }
 }
 
@@ -56,7 +67,10 @@ Widget _app({
   _testRouter = GoRouter(
     initialLocation: initialLocation,
     routes: [
-      GoRoute(path: '/home', builder: (_, _) => const Scaffold(body: Text('home'))),
+      GoRoute(
+        path: '/home',
+        builder: (_, _) => const Scaffold(body: Text('home')),
+      ),
       GoRoute(path: '/add/capture', builder: (_, _) => const CaptureScreen()),
       GoRoute(
         path: '/confirm',
@@ -82,7 +96,9 @@ Widget _app({
 }
 
 void main() {
-  testWidgets('scan button triggers fake flow and navigates to confirm', (tester) async {
+  testWidgets('scan button triggers fake flow and navigates to confirm', (
+    tester,
+  ) async {
     final scanner = _TestScanner();
     final useCase = ScanAndExtractUseCase(scanner, _TestExtractor());
 
@@ -91,7 +107,11 @@ void main() {
         overrides: [
           scanAndExtractUseCaseProvider.overrideWithValue(useCase),
           importFromGalleryUseCaseProvider.overrideWithValue(
-            ImportFromGalleryUseCase(scanner),
+            ImportFromGalleryUseCase(
+              scanner,
+              const _TestOcrService(),
+              _TestExtractor(),
+            ),
           ),
           selectedDocumentTypeProvider.overrideWith((_) => DocumentType.rca),
         ],
@@ -110,7 +130,11 @@ void main() {
   testWidgets('gallery cancel stays on capture screen', (tester) async {
     final scanner = _TestScanner()
       ..galleryResult = () async => throw const ScanCancelled();
-    final importUseCase = ImportFromGalleryUseCase(scanner);
+    final importUseCase = ImportFromGalleryUseCase(
+      scanner,
+      const _TestOcrService(),
+      _TestExtractor(),
+    );
 
     await tester.pumpWidget(
       _app(
@@ -129,10 +153,16 @@ void main() {
     expect(find.text('home'), findsNothing);
   });
 
-  testWidgets('gallery failure shows error and stays on capture', (tester) async {
+  testWidgets('gallery failure shows error and stays on capture', (
+    tester,
+  ) async {
     final scanner = _TestScanner()
       ..galleryResult = () async => throw const ScanFailed();
-    final importUseCase = ImportFromGalleryUseCase(scanner);
+    final importUseCase = ImportFromGalleryUseCase(
+      scanner,
+      const _TestOcrService(),
+      _TestExtractor(),
+    );
 
     await tester.pumpWidget(
       _app(

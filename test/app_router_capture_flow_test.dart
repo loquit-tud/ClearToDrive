@@ -10,6 +10,7 @@ import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/domain/repositories/document_repository.dart';
 import 'package:cleartodrive/domain/repositories/vehicle_repository.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
+import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/features/add_document/add_document_chooser_screen.dart';
@@ -17,6 +18,7 @@ import 'package:cleartodrive/presentation/features/add_document/capture_screen.d
 import 'package:cleartodrive/presentation/features/confirm/confirm_screen.dart';
 import 'package:cleartodrive/presentation/features/home/home_screen.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
+import 'package:cleartodrive/presentation/widgets/document_image_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,12 +46,37 @@ class _TestScanner implements DocumentScannerService {
   }
 }
 
+class _TestOcrService implements DocumentOcrService {
+  _TestOcrService({this.result});
+
+  final OcrTextResult? result;
+  var calls = 0;
+
+  @override
+  Future<OcrTextResult> recognizeText(String imagePath) async {
+    calls++;
+    return result ??
+        const OcrTextResult.success(
+          'Certificat ITP B 123 ABC valabil pana 31.12.2026',
+        );
+  }
+}
+
 class _TestExtractor implements DocumentFieldExtractor {
   @override
-  Future<ExtractionResult> extract({
-    required String imagePath,
+  Future<ExtractionResult> extractFromText({
+    required OcrTextResult ocrText,
     DocumentType? typeHint,
+    DateTime? referenceDate,
   }) async {
+    if (!ocrText.succeeded || !ocrText.hasText) {
+      return ExtractionResult(
+        suggestedType: typeHint,
+        confidence: 0,
+        rawText: ocrText.text,
+        needsManualReview: true,
+      );
+    }
     return ExtractionResult(
       licensePlate: 'B 123 ABC',
       expiryDate: DateTime(2026, 12, 31),
@@ -136,6 +163,13 @@ class _TestNotificationScheduler implements NotificationScheduler {
 }
 
 Widget _app({required _TestScanner scanner}) {
+  return _appWithOcr(scanner: scanner, ocr: _TestOcrService());
+}
+
+Widget _appWithOcr({
+  required _TestScanner scanner,
+  required _TestOcrService ocr,
+}) {
   final vehicleRepo = _InMemoryVehicleRepository();
   final documentRepo = _InMemoryDocumentRepository();
   final router = GoRouter(
@@ -172,7 +206,7 @@ Widget _app({required _TestScanner scanner}) {
         ScanAndExtractUseCase(scanner, _TestExtractor()),
       ),
       importFromGalleryUseCaseProvider.overrideWithValue(
-        ImportFromGalleryUseCase(scanner),
+        ImportFromGalleryUseCase(scanner, ocr, _TestExtractor()),
       ),
       listDocumentsUseCaseProvider.overrideWithValue(
         ListDocumentsUseCase(documentRepo, vehicleRepo),
@@ -277,8 +311,9 @@ void main() {
   ) async {
     final image = (await tester.runAsync(_createTestImage))!;
     final scanner = _TestScanner(galleryImagePath: image.path);
+    final ocr = _TestOcrService();
 
-    await tester.pumpWidget(_app(scanner: scanner));
+    await tester.pumpWidget(_appWithOcr(scanner: scanner, ocr: ocr));
     await _pumpFrames(tester);
     await tester.tap(find.byType(FloatingActionButton));
     await _pumpFrames(tester);
@@ -288,9 +323,11 @@ void main() {
     await _pumpFrames(tester, 4);
 
     expect(scanner.galleryCalls, 1);
+    expect(ocr.calls, 1);
     expect(find.byType(ConfirmScreen), findsOneWidget);
-    expect(find.textContaining('Am importat imaginea'), findsOneWidget);
-    expect(find.text('Completează manual'), findsOneWidget);
+    expect(find.textContaining('Am găsit câteva date automat'), findsOneWidget);
+    expect(find.text('31.12.2026'), findsOneWidget);
+    expect(find.text('B 123 ABC'), findsWidgets);
 
     await tester.runAsync(() => image.parent.delete(recursive: true));
   });
@@ -362,6 +399,35 @@ void main() {
         findsWidgets,
       );
       expect(find.byType(ConfirmScreen), findsNothing);
+
+      await tester.runAsync(() => image.parent.delete(recursive: true));
+    },
+  );
+
+  testWidgets(
+    'router flow: OCR failure opens confirm with image and empty fields',
+    (tester) async {
+      final image = (await tester.runAsync(_createTestImage))!;
+      final scanner = _TestScanner(galleryImagePath: image.path);
+      final ocr = _TestOcrService(result: const OcrTextResult.failure());
+
+      await tester.pumpWidget(_appWithOcr(scanner: scanner, ocr: ocr));
+      await _pumpFrames(tester);
+      await tester.tap(find.byType(FloatingActionButton));
+      await _pumpFrames(tester);
+      await tester.tap(find.text('ITP'));
+      await _pumpFrames(tester);
+      await tester.tap(find.text('Importă din galerie'));
+      await _pumpFrames(tester, 4);
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(scanner.galleryCalls, 1);
+      expect(ocr.calls, 1);
+      expect(find.byType(ConfirmScreen), findsOneWidget);
+      expect(find.byType(DocumentImagePreview), findsOneWidget);
+      expect(find.textContaining('Nu am putut citi automat'), findsOneWidget);
+      expect(textField.controller?.text, isEmpty);
+      expect(find.text('Completează manual'), findsOneWidget);
 
       await tester.runAsync(() => image.parent.delete(recursive: true));
     },

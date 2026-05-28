@@ -81,6 +81,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Image imported. Verify the document and enter the expiry date.';
 
   @override
+  String get ocrImportSuccessHelper =>
+      'I found a few details automatically. Check them before saving.';
+
+  @override
+  String get ocrImportFailureHelper =>
+      'Could not read the data automatically. Enter the expiry date manually.';
+
+  @override
+  String get ocrWarning =>
+      'OCR can be wrong. You must verify the data yourself.';
+
+  @override
+  String get ocrVerifyManually => 'check manually';
+
+  @override
   String get galleryImportFailed =>
       'Could not import the image. Please try again.';
 

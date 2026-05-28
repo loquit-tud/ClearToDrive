@@ -81,6 +81,21 @@ class AppLocalizationsRo extends AppLocalizations {
       'Am importat imaginea. Verifică documentul și completează data expirării.';
 
   @override
+  String get ocrImportSuccessHelper =>
+      'Am găsit câteva date automat. Verifică-le înainte de salvare.';
+
+  @override
+  String get ocrImportFailureHelper =>
+      'Nu am putut citi automat datele. Completează manual data expirării.';
+
+  @override
+  String get ocrWarning =>
+      'OCR-ul poate greși. Datele trebuie verificate de tine.';
+
+  @override
+  String get ocrVerifyManually => 'verifică manual';
+
+  @override
   String get galleryImportFailed =>
       'Nu am putut importa imaginea. Încearcă din nou.';
 

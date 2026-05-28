@@ -11,6 +11,7 @@ import 'package:cleartodrive/domain/repositories/app_preferences_repository.dart
 import 'package:cleartodrive/domain/repositories/document_repository.dart';
 import 'package:cleartodrive/domain/repositories/vehicle_repository.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
+import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/domain/services/reminder_service.dart';
 import 'package:cleartodrive/data/services/notification_scheduler.dart';
@@ -25,7 +26,11 @@ final scanAndExtractUseCaseProvider = Provider<ScanAndExtractUseCase>(
 );
 
 final importFromGalleryUseCaseProvider = Provider<ImportFromGalleryUseCase>(
-  (ref) => ImportFromGalleryUseCase(getIt<DocumentScannerService>()),
+  (ref) => ImportFromGalleryUseCase(
+    getIt<DocumentScannerService>(),
+    getIt<DocumentOcrService>(),
+    getIt<DocumentFieldExtractor>(),
+  ),
 );
 
 final confirmDocumentUseCaseProvider = Provider<ConfirmDocumentUseCase>(
@@ -47,12 +52,12 @@ final listDocumentsUseCaseProvider = Provider<ListDocumentsUseCase>(
 
 final rescheduleAllRemindersUseCaseProvider =
     Provider<RescheduleAllRemindersUseCase>(
-  (ref) => RescheduleAllRemindersUseCase(
-    getIt<DocumentRepository>(),
-    getIt<AppPreferencesRepository>(),
-    getIt<ReminderService>(),
-  ),
-);
+      (ref) => RescheduleAllRemindersUseCase(
+        getIt<DocumentRepository>(),
+        getIt<AppPreferencesRepository>(),
+        getIt<ReminderService>(),
+      ),
+    );
 
 final deleteDocumentUseCaseProvider = Provider<DeleteDocumentUseCase>(
   (ref) => DeleteDocumentUseCase(
@@ -85,13 +90,12 @@ final notificationSchedulerProvider = Provider<NotificationScheduler>(
   (ref) => getIt<NotificationScheduler>(),
 );
 
-final sendTestNotificationUseCaseProvider = Provider<SendTestNotificationUseCase>(
-  (ref) => SendTestNotificationUseCase(getIt<NotificationScheduler>()),
-);
+final sendTestNotificationUseCaseProvider =
+    Provider<SendTestNotificationUseCase>(
+      (ref) => SendTestNotificationUseCase(getIt<NotificationScheduler>()),
+    );
 
-final confirmDraftProvider = StateProvider<ConfirmDraft?>(
-  (ref) => null,
-);
+final confirmDraftProvider = StateProvider<ConfirmDraft?>((ref) => null);
 
 final selectedDocumentTypeProvider = StateProvider<DocumentType?>(
   (ref) => null,
@@ -101,8 +105,8 @@ final documentsRefreshProvider = StateProvider<int>((ref) => 0);
 
 final reminderPolicyProvider =
     StateNotifierProvider<ReminderPolicyNotifier, ReminderPolicy>(
-  (ref) => ReminderPolicyNotifier(getIt<AppPreferencesRepository>()),
-);
+      (ref) => ReminderPolicyNotifier(getIt<AppPreferencesRepository>()),
+    );
 
 class ReminderPolicyNotifier extends StateNotifier<ReminderPolicy> {
   ReminderPolicyNotifier(this._prefs) : super(ReminderPolicy.defaults) {
@@ -140,8 +144,8 @@ class ReminderPolicyNotifier extends StateNotifier<ReminderPolicy> {
 
 final onboardingCompleteProvider =
     StateNotifierProvider<OnboardingNotifier, AsyncValue<bool>>(
-  (ref) => OnboardingNotifier(getIt<AppPreferencesRepository>()),
-);
+      (ref) => OnboardingNotifier(getIt<AppPreferencesRepository>()),
+    );
 
 class OnboardingNotifier extends StateNotifier<AsyncValue<bool>> {
   OnboardingNotifier(this._prefs) : super(const AsyncValue.loading()) {
@@ -162,12 +166,12 @@ class OnboardingNotifier extends StateNotifier<AsyncValue<bool>> {
 
 final notificationPermissionProvider =
     StateNotifierProvider<NotificationPermissionNotifier, AsyncValue<bool>>(
-  (ref) => NotificationPermissionNotifier(getIt<NotificationScheduler>()),
-);
+      (ref) => NotificationPermissionNotifier(getIt<NotificationScheduler>()),
+    );
 
 class NotificationPermissionNotifier extends StateNotifier<AsyncValue<bool>> {
   NotificationPermissionNotifier(this._scheduler)
-      : super(const AsyncValue.loading()) {
+    : super(const AsyncValue.loading()) {
     _load();
   }
 

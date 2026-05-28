@@ -7,8 +7,10 @@ import 'package:cleartodrive/data/repositories/drift_app_preferences_repository.
 import 'package:cleartodrive/data/repositories/drift_document_repository.dart';
 import 'package:cleartodrive/data/repositories/drift_vehicle_repository.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
+import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/domain/services/reminder_service.dart';
+import 'package:cleartodrive/platform/ocr/romanian_document_field_extractor.dart';
 import 'package:cleartodrive/domain/entities/reminder_policy.dart';
 import 'package:cleartodrive/domain/entities/reminder_schedule.dart';
 import 'package:cleartodrive/domain/entities/vehicle_document.dart';
@@ -22,8 +24,9 @@ class _FakeReminderService implements ReminderService {
   Future<void> cancelForDocument(String documentId) async {}
 
   @override
-  Future<List<ReminderSchedule>> getSchedulesForDocument(String documentId) async =>
-      const [];
+  Future<List<ReminderSchedule>> getSchedulesForDocument(
+    String documentId,
+  ) async => const [];
 
   @override
   Future<void> scheduleForDocument(
@@ -33,7 +36,7 @@ class _FakeReminderService implements ReminderService {
 }
 
 void main() {
-  test('saving imported ITP persists imagePath across repository reload', () async {
+  test('saving imported ITP persists imagePath and confirmed values', () async {
     final tempDir = await Directory.systemTemp.createTemp('ctd_persist');
     final imagePath = p.join(tempDir.path, 'itp.jpg');
     await File(imagePath).writeAsBytes([0xFF, 0xD8, 0xFF]);
@@ -47,6 +50,8 @@ void main() {
 
     final importDraft = await ImportFromGalleryUseCase(
       _PathScanner(imagePath),
+      const _FixedOcrService(),
+      const RomanianDocumentFieldExtractor(),
     ).execute(typeHint: DocumentType.itp);
 
     final confirmUseCase = ConfirmDocumentUseCase(
@@ -66,6 +71,11 @@ void main() {
 
     expect(saved.imagePath, imagePath);
     expect(saved.type, DocumentType.itp);
+    expect(saved.expiryDate, DateTime(2027, 6, 15));
+    expect(
+      (await vehicleRepo.getById(saved.vehicleId))?.licensePlate,
+      'B 999 XYZ',
+    );
 
     final reloaded = DriftDocumentRepository(db);
     final loaded = await reloaded.getById(saved.id);
@@ -75,14 +85,24 @@ void main() {
   });
 }
 
+class _FixedOcrService implements DocumentOcrService {
+  const _FixedOcrService();
+
+  @override
+  Future<OcrTextResult> recognizeText(String imagePath) async {
+    return const OcrTextResult.success(
+      'Certificat ITP B 111 OCR valabil pana 29.08.2026',
+    );
+  }
+}
+
 class _PathScanner implements DocumentScannerService {
   _PathScanner(this.path);
 
   final String path;
 
   @override
-  Future<ScanResult> pickFromGallery() async =>
-      ScanResult(imagePaths: [path]);
+  Future<ScanResult> pickFromGallery() async => ScanResult(imagePaths: [path]);
 
   @override
   Future<ScanResult> scan() => throw UnimplementedError();

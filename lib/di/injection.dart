@@ -9,12 +9,14 @@ import 'package:cleartodrive/domain/repositories/app_preferences_repository.dart
 import 'package:cleartodrive/domain/repositories/document_repository.dart';
 import 'package:cleartodrive/domain/repositories/vehicle_repository.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
+import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/domain/services/reminder_service.dart';
 import 'package:cleartodrive/platform/document_scanner/composite_document_scanner_service.dart';
 import 'package:cleartodrive/platform/document_scanner/fake_document_scanner_service.dart';
 import 'package:cleartodrive/platform/document_scanner/image_picker_gallery_scanner_service.dart';
-import 'package:cleartodrive/platform/ocr/fake_document_field_extractor.dart';
+import 'package:cleartodrive/platform/ocr/mlkit_document_ocr_service.dart';
+import 'package:cleartodrive/platform/ocr/romanian_document_field_extractor.dart';
 import 'package:cleartodrive/platform/storage/document_image_store.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
@@ -42,7 +44,9 @@ void configureDependencies() {
     FlutterLocalNotificationsPlugin.new,
   );
   getIt.registerLazySingleton<NotificationScheduler>(
-    () => FlutterLocalNotificationsScheduler(getIt<FlutterLocalNotificationsPlugin>()),
+    () => FlutterLocalNotificationsScheduler(
+      getIt<FlutterLocalNotificationsPlugin>(),
+    ),
   );
   getIt.registerLazySingleton<ReminderService>(
     () => LocalReminderService(
@@ -62,7 +66,8 @@ void configureDependencies() {
     ),
   );
   getIt.registerLazySingleton<DocumentFieldExtractor>(
-    FakeDocumentFieldExtractor.new,
+    RomanianDocumentFieldExtractor.new,
   );
+  getIt.registerLazySingleton<DocumentOcrService>(MlKitDocumentOcrService.new);
   getIt.registerLazySingleton<Uuid>(() => const Uuid());
 }
