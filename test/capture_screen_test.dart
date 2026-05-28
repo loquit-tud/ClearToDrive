@@ -109,7 +109,7 @@ void main() {
     expect(find.text('B 123 ABC'), findsWidgets);
   });
 
-  testWidgets('gallery success navigates to confirm with helper text', (tester) async {
+  testWidgets('gallery success sets draft and navigates to confirm', (tester) async {
     final scanner = _TestScanner()
       ..galleryResult = () async => ScanResult(imagePaths: [await _tempImagePath()]);
     final importUseCase = ImportFromGalleryUseCase(scanner);
@@ -124,17 +124,18 @@ void main() {
     );
 
     await tester.tap(find.text('Importă din galerie'));
-    await tester.pump();
-    for (var i = 0; i < 20; i++) {
-      await tester.pump(const Duration(milliseconds: 50));
-      if (find.textContaining('Am importat imaginea').evaluate().isNotEmpty) {
-        break;
-      }
-    }
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(scanner.galleryCalls, 1);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(CaptureScreen)),
+    );
+    expect(container.read(confirmDraftProvider)?.source, DocumentSource.import);
+    expect(container.read(confirmDraftProvider)?.imagePath, isNotEmpty);
     expect(_testRouter!.state.matchedLocation, '/confirm');
-    expect(find.textContaining('Am importat imaginea'), findsOneWidget);
   });
 
   testWidgets('gallery cancel stays on capture screen', (tester) async {
