@@ -122,7 +122,12 @@ void main() {
 
     await tester.tap(find.text('Importă din galerie'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (find.textContaining('Am importat imaginea').evaluate().isNotEmpty) {
+        break;
+      }
+    }
 
     expect(scanner.galleryCalls, 1);
     expect(find.byType(ConfirmScreen), findsOneWidget);
