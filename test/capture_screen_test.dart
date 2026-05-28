@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.dart';
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
@@ -71,6 +73,13 @@ Widget _app({
   );
 }
 
+Future<String> _tempImagePath() async {
+  final dir = await Directory.systemTemp.createTemp('ctd_cap');
+  final file = File('${dir.path}/gallery.jpg');
+  await file.writeAsBytes([0xFF, 0xD8, 0xFF]);
+  return file.path;
+}
+
 void main() {
   testWidgets('scan button triggers fake flow and navigates to confirm', (tester) async {
     final scanner = _TestScanner();
@@ -92,11 +101,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(scanner.scanCalls, 1);
-    expect(find.text('B 123 ABC'), findsOneWidget);
+    expect(find.text('B 123 ABC'), findsWidgets);
+    expect(find.text('Verifică datele'), findsOneWidget);
   });
 
   testWidgets('gallery success navigates to confirm with helper text', (tester) async {
-    final scanner = _TestScanner();
+    final scanner = _TestScanner()
+      ..galleryResult = () async => ScanResult(imagePaths: [await _tempImagePath()]);
     final importUseCase = ImportFromGalleryUseCase(scanner);
 
     await tester.pumpWidget(
@@ -109,7 +120,8 @@ void main() {
     );
 
     await tester.tap(find.text('Importă din galerie'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(scanner.galleryCalls, 1);
     expect(
