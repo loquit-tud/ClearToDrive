@@ -1,5 +1,4 @@
 import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.dart';
-import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/features/add_document/add_document_chooser_screen.dart';
