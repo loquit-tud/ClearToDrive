@@ -5,7 +5,6 @@ import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.
 import 'package:cleartodrive/data/database/app_database.dart';
 import 'package:cleartodrive/data/repositories/drift_app_preferences_repository.dart';
 import 'package:cleartodrive/data/repositories/drift_document_repository.dart';
-import 'package:cleartodrive/data/repositories/drift_reminder_schedule_repository.dart';
 import 'package:cleartodrive/data/repositories/drift_vehicle_repository.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
