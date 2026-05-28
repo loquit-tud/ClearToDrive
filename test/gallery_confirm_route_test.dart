@@ -27,7 +27,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          confirmDraftProvider.overrideWithValue(draft),
+          confirmDraftProvider.overrideWith((ref) => draft),
         ],
         child: MaterialApp.router(
           routerConfig: GoRouter(
