@@ -18,7 +18,6 @@ class ImportFromGalleryUseCase {
     return ConfirmDraft(
       type: typeHint,
       licensePlate: '',
-      expiryDate: DateTime.now().add(const Duration(days: 30)),
       source: DocumentSource.import,
       imagePath: imagePath,
     );

@@ -1,3 +1,4 @@
+import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/presentation/features/add_document/add_document_chooser_screen.dart';
 import 'package:cleartodrive/presentation/features/add_document/capture_screen.dart';
 import 'package:cleartodrive/presentation/features/confirm/confirm_screen.dart';
@@ -39,7 +40,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/confirm',
-        builder: (context, state) => const ConfirmScreen(),
+        builder: (context, state) => ConfirmScreen(
+          initialDraft: state.extra is ConfirmDraft
+              ? state.extra! as ConfirmDraft
+              : null,
+        ),
       ),
       GoRoute(
         path: '/manual',

@@ -73,6 +73,10 @@ class AppLocalizationsRo extends AppLocalizations {
   String get importGallery => 'Importă din galerie';
 
   @override
+  String get captureMissingType =>
+      'Nu am putut deschide scanarea. Alege documentul din nou.';
+
+  @override
   String get galleryImportHelper =>
       'Am importat imaginea. Verifică documentul și completează data expirării.';
 
@@ -114,6 +118,9 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get expiryDate => 'Data expirării';
+
+  @override
+  String get expiryDateRequired => 'Completează data expirării.';
 
   @override
   String get documentType => 'Tip document';

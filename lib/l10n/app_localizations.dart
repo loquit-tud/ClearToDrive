@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'Import from gallery'**
   String get importGallery;
 
+  /// No description provided for @captureMissingType.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open scanning. Choose the document again.'**
+  String get captureMissingType;
+
   /// No description provided for @galleryImportHelper.
   ///
   /// In en, this message translates to:
@@ -289,6 +295,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Expiry date'**
   String get expiryDate;
+
+  /// No description provided for @expiryDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the expiry date.'**
+  String get expiryDateRequired;
 
   /// No description provided for @documentType.
   ///

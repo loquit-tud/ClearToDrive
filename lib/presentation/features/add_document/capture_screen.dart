@@ -17,13 +17,15 @@ class CaptureScreen extends ConsumerStatefulWidget {
 class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   var _loading = false;
 
-  DocumentType get _type =>
-      ref.read(selectedDocumentTypeProvider) ?? DocumentType.rca;
+  DocumentType? get _selectedType => ref.read(selectedDocumentTypeProvider);
 
   var _loadingMessage = '';
 
   Future<void> _runScan() async {
     final l10n = AppLocalizations.of(context);
+    final type = _selectedType;
+    if (type == null) return;
+
     setState(() {
       _loading = true;
       _loadingMessage = l10n.analyzingDocument;
@@ -31,15 +33,15 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     try {
       final draft = await ref
           .read(scanAndExtractUseCaseProvider)
-          .fromScan(typeHint: _type);
+          .fromScan(typeHint: type);
       if (!mounted) return;
       ref.read(confirmDraftProvider.notifier).state = draft;
-      context.push('/confirm');
+      await context.push('/confirm', extra: draft);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.actionFailedTryAgain)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.actionFailedTryAgain)));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -48,32 +50,33 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
 
   Future<void> _importFromGallery() async {
     final l10n = AppLocalizations.of(context);
-    setState(() {
-      _loading = true;
-      _loadingMessage = l10n.importingImage;
-    });
+    final type = _selectedType;
+    if (type == null) return;
+
+    // Do not show a modal overlay while the system gallery is open — it can
+    // block or cancel the picker on some Android devices.
     try {
       final draft = await ref
           .read(importFromGalleryUseCaseProvider)
-          .execute(typeHint: _type);
+          .execute(typeHint: type);
       if (!mounted) return;
       ref.read(confirmDraftProvider.notifier).state = draft;
-      context.push('/confirm');
+      await context.push('/confirm', extra: draft);
     } on ScanCancelled {
       // User dismissed picker — stay on capture, no message.
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.galleryImportFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.galleryImportFailed)));
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
   void _manual() {
-    final draft = ref.read(manualEntryDraftFactoryProvider).empty(type: _type);
+    final type = _selectedType;
+    if (type == null) return;
+    final draft = ref.read(manualEntryDraftFactoryProvider).empty(type: type);
     ref.read(confirmDraftProvider.notifier).state = draft;
     context.push('/manual');
   }
@@ -81,7 +84,29 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final type = ref.watch(selectedDocumentTypeProvider) ?? DocumentType.rca;
+    final type = ref.watch(selectedDocumentTypeProvider);
+
+    if (type == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.addDocument)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.captureMissingType, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => context.go('/add'),
+                  child: Text(l10n.addDocument),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(documentTypeLabel(l10n, type))),

@@ -73,6 +73,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importGallery => 'Import from gallery';
 
   @override
+  String get captureMissingType =>
+      'Could not open scanning. Choose the document again.';
+
+  @override
   String get galleryImportHelper =>
       'Image imported. Verify the document and enter the expiry date.';
 
@@ -114,6 +118,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expiryDate => 'Expiry date';
+
+  @override
+  String get expiryDateRequired => 'Enter the expiry date.';
 
   @override
   String get documentType => 'Document type';

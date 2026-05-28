@@ -16,27 +16,27 @@ class _MockScanner implements DocumentScannerService {
 }
 
 void main() {
-  test('gallery import success returns draft with imagePath and no OCR plate', () async {
-    const path = '/data/imported/itp.jpg';
-    final useCase = ImportFromGalleryUseCase(
-      _MockScanner(
-        onPick: () async => const ScanResult(imagePaths: [path]),
-      ),
-    );
+  test(
+    'gallery import success returns draft with imagePath and no OCR plate',
+    () async {
+      const path = '/data/imported/itp.jpg';
+      final useCase = ImportFromGalleryUseCase(
+        _MockScanner(onPick: () async => const ScanResult(imagePaths: [path])),
+      );
 
-    final draft = await useCase.execute(typeHint: DocumentType.itp);
+      final draft = await useCase.execute(typeHint: DocumentType.itp);
 
-    expect(draft.type, DocumentType.itp);
-    expect(draft.imagePath, path);
-    expect(draft.licensePlate, isEmpty);
-    expect(draft.source, DocumentSource.import);
-  });
+      expect(draft.type, DocumentType.itp);
+      expect(draft.imagePath, path);
+      expect(draft.licensePlate, isEmpty);
+      expect(draft.expiryDate, isNull);
+      expect(draft.source, DocumentSource.import);
+    },
+  );
 
   test('gallery cancel propagates ScanCancelled', () async {
     final useCase = ImportFromGalleryUseCase(
-      _MockScanner(
-        onPick: () async => throw const ScanCancelled(),
-      ),
+      _MockScanner(onPick: () async => throw const ScanCancelled()),
     );
 
     expect(
@@ -47,9 +47,7 @@ void main() {
 
   test('gallery failure when no image path', () async {
     final useCase = ImportFromGalleryUseCase(
-      _MockScanner(
-        onPick: () async => const ScanResult(imagePaths: []),
-      ),
+      _MockScanner(onPick: () async => const ScanResult(imagePaths: [])),
     );
 
     expect(

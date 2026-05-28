@@ -28,6 +28,10 @@ class ConfirmDocumentUseCase {
     if (plate.isEmpty) {
       throw ArgumentError('License plate is required');
     }
+    final expiryDate = draft.expiryDate;
+    if (expiryDate == null) {
+      throw ArgumentError('Expiry date is required');
+    }
 
     final now = DateTime.now();
     Vehicle vehicle;
@@ -35,7 +39,8 @@ class ConfirmDocumentUseCase {
     if (draft.vehicleId != null) {
       vehicle = (await _vehicleRepo.getById(draft.vehicleId!))!;
     } else {
-      vehicle = await _vehicleRepo.findByPlate(plate) ??
+      vehicle =
+          await _vehicleRepo.findByPlate(plate) ??
           Vehicle(
             id: _uuid.v4(),
             licensePlate: plate,
@@ -50,11 +55,7 @@ class ConfirmDocumentUseCase {
       id: draft.documentId ?? _uuid.v4(),
       vehicleId: vehicle.id,
       type: draft.type,
-      expiryDate: DateTime(
-        draft.expiryDate.year,
-        draft.expiryDate.month,
-        draft.expiryDate.day,
-      ),
+      expiryDate: DateTime(expiryDate.year, expiryDate.month, expiryDate.day),
       source: draft.source,
       imagePath: draft.imagePath,
       confirmedAt: now,

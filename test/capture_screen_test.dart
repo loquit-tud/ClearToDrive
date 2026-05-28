@@ -58,7 +58,14 @@ Widget _app({
     routes: [
       GoRoute(path: '/home', builder: (_, _) => const Scaffold(body: Text('home'))),
       GoRoute(path: '/add/capture', builder: (_, _) => const CaptureScreen()),
-      GoRoute(path: '/confirm', builder: (_, _) => const ConfirmScreen()),
+      GoRoute(
+        path: '/confirm',
+        builder: (_, state) => ConfirmScreen(
+          initialDraft: state.extra is ConfirmDraft
+              ? state.extra! as ConfirmDraft
+              : null,
+        ),
+      ),
     ],
   );
   final router = _testRouter!;
@@ -115,7 +122,8 @@ void main() {
     );
 
     await tester.tap(find.text('Importă din galerie'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Importă din galerie'), findsOneWidget);
     expect(find.text('home'), findsNothing);
@@ -136,7 +144,8 @@ void main() {
     );
 
     await tester.tap(find.text('Importă din galerie'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(
       find.text('Nu am putut importa imaginea. Încearcă din nou.'),

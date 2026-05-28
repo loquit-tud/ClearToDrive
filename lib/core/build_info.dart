@@ -4,6 +4,6 @@ class BuildInfo {
   static const buildNumber = '2';
   static const buildLabel = String.fromEnvironment(
     'BUILD_LABEL',
-    defaultValue: 'local-debug',
+    defaultValue: 'v0.2-gallery-import',
   );
 }

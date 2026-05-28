@@ -11,9 +11,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class ConfirmScreen extends ConsumerStatefulWidget {
-  const ConfirmScreen({super.key, this.editDocumentId});
+  const ConfirmScreen({super.key, this.editDocumentId, this.initialDraft});
 
   final String? editDocumentId;
+  final ConfirmDraft? initialDraft;
 
   @override
   ConsumerState<ConfirmScreen> createState() => _ConfirmScreenState();
@@ -29,6 +30,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   String? _vehicleId;
   var _saving = false;
   var _loadingEdit = false;
+  var _editLoadStarted = false;
   var _draftApplied = false;
 
   @override
@@ -36,20 +38,32 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     super.initState();
     if (widget.editDocumentId != null) {
       _loadingEdit = true;
-      _loadEdit();
+      return;
     }
+    // [initialDraft] is synchronous; ref is not available in initState.
+    _applyDraftIfPresent(widget.initialDraft);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (widget.editDocumentId != null && _loadingEdit && !_editLoadStarted) {
+      _editLoadStarted = true;
+      _loadEdit();
+      return;
+    }
     if (_draftApplied || widget.editDocumentId != null) return;
-    final draft = ref.read(confirmDraftProvider);
+    final draft = widget.initialDraft ?? ref.read(confirmDraftProvider);
     if (draft == null) return;
-    setState(() {
-      _draftApplied = true;
-      _initFromDraft(draft);
-    });
+    setState(() => _applyDraftIfPresent(draft));
+  }
+
+  void _applyDraftIfPresent(ConfirmDraft? draft) {
+    if (_draftApplied || widget.editDocumentId != null || draft == null) {
+      return;
+    }
+    _draftApplied = true;
+    _initFromDraft(draft);
   }
 
   @override
@@ -88,7 +102,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _expiryDate!,
+      initialDate: _expiryDate ?? DateTime.now().add(const Duration(days: 30)),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
@@ -96,12 +110,20 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
+    if (_expiryDate == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.expiryDateRequired)));
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       final draft = ConfirmDraft(
         type: _type!,
         licensePlate: _plateController!.text,
-        expiryDate: _expiryDate!,
+        expiryDate: _expiryDate,
         source: _source ?? DocumentSource.manual,
         imagePath: _imagePath,
         documentId: widget.editDocumentId ?? _documentId,
@@ -111,16 +133,16 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       ref.read(confirmDraftProvider.notifier).state = null;
       ref.read(documentsRefreshProvider.notifier).state++;
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).documentSaved)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.documentSaved)));
         context.go('/home');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -141,12 +163,30 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     }
 
     if (widget.editDocumentId == null && !_draftApplied) {
-      final draft = ref.watch(confirmDraftProvider);
+      final draft = widget.initialDraft ?? ref.watch(confirmDraftProvider);
       return Scaffold(
         appBar: AppBar(),
         body: Center(
-          child: Text(
-            draft == null ? l10n.confirmMissingDraft : l10n.analyzingDocument,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  draft == null
+                      ? l10n.confirmMissingDraft
+                      : l10n.analyzingDocument,
+                  textAlign: TextAlign.center,
+                ),
+                if (draft == null) ...[
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => context.go('/add/capture'),
+                    child: Text(l10n.importGallery),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       );
@@ -155,7 +195,22 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     if (_type == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: Center(child: Text(l10n.confirmMissingDraft)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(l10n.confirmMissingDraft, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => context.go('/add/capture'),
+                  child: Text(l10n.importGallery),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -195,10 +250,15 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
               child: InputDecorator(
                 decoration: InputDecoration(labelText: l10n.expiryDate),
                 child: Text(
-                  DateFormat('dd.MM.yyyy').format(_expiryDate!),
+                  _expiryDate == null
+                      ? l10n.completeManually
+                      : DateFormat('dd.MM.yyyy').format(_expiryDate!),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: _expiryDate == null
+                        ? Theme.of(context).hintColor
+                        : null,
+                  ),
                 ),
               ),
             ),

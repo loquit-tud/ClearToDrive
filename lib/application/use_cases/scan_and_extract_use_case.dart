@@ -6,7 +6,7 @@ class ConfirmDraft {
   const ConfirmDraft({
     required this.type,
     required this.licensePlate,
-    required this.expiryDate,
+    this.expiryDate,
     required this.source,
     this.imagePath,
     this.documentId,
@@ -15,7 +15,7 @@ class ConfirmDraft {
 
   final DocumentType type;
   final String licensePlate;
-  final DateTime expiryDate;
+  final DateTime? expiryDate;
   final DocumentSource source;
   final String? imagePath;
   final String? documentId;

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cleartodrive/platform/storage/document_image_store.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -23,6 +24,10 @@ class _TestDocumentImageStore implements DocumentImageStore {
     await File(sourcePath).copy(destPath);
     return destPath;
   }
+
+  @override
+  Future<String> persistImportedXFile(XFile source) =>
+      persistImportedImage(source.path);
 }
 
 void main() {
