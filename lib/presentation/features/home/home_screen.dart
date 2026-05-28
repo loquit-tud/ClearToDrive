@@ -1,3 +1,4 @@
+import 'package:cleartodrive/application/use_cases/list_documents_use_case.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
 import 'package:cleartodrive/presentation/widgets/document_card.dart';
@@ -5,15 +6,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<List<DocumentWithVehicle>>? _listFuture;
+  int? _loadedRefresh;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    ref.watch(documentsRefreshProvider);
+    final refresh = ref.watch(documentsRefreshProvider);
     final notificationStatus = ref.watch(notificationPermissionProvider);
-    final listFuture = ref.read(listDocumentsUseCaseProvider).execute();
+
+    if (_listFuture == null || _loadedRefresh != refresh) {
+      _loadedRefresh = refresh;
+      _listFuture = ref.read(listDocumentsUseCaseProvider).execute();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -35,7 +48,7 @@ class HomeScreen extends ConsumerWidget {
         label: Text(l10n.addDocument),
       ),
       body: FutureBuilder(
-        future: listFuture,
+        future: _listFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
@@ -52,7 +65,9 @@ class HomeScreen extends ConsumerWidget {
                       ? const SizedBox.shrink()
                       : Card(
                           child: ListTile(
-                            leading: const Icon(Icons.notifications_off_outlined),
+                            leading: const Icon(
+                              Icons.notifications_off_outlined,
+                            ),
                             title: Text(l10n.notificationPermissionsDisabled),
                             subtitle: Text(l10n.notificationDeniedExplanation),
                             trailing: const Icon(Icons.chevron_right),
@@ -71,18 +86,18 @@ class HomeScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.description_outlined,
-                            size: 64, color: Colors.grey.shade400),
+                        Icon(
+                          Icons.description_outlined,
+                          size: 64,
+                          color: Colors.grey.shade400,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           l10n.noDocuments,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          l10n.noDocumentsHint,
-                          textAlign: TextAlign.center,
-                        ),
+                        Text(l10n.noDocumentsHint, textAlign: TextAlign.center),
                         const SizedBox(height: 24),
                         FilledButton(
                           onPressed: () => context.push('/add'),
