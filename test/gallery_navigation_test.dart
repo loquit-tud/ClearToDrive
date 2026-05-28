@@ -47,9 +47,14 @@ void main() {
 
     await tester.tap(find.text('Importă din galerie'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (find.textContaining('Am importat imaginea').evaluate().isNotEmpty) {
+        break;
+      }
+    }
 
-    expect(find.text('Tip document'), findsOneWidget);
+    expect(find.byType(ConfirmScreen), findsOneWidget);
     expect(find.textContaining('Am importat imaginea'), findsOneWidget);
   });
 }

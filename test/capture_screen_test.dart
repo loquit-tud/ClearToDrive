@@ -98,10 +98,11 @@ void main() {
     );
 
     await tester.tap(find.text('Scanează document'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(scanner.scanCalls, 1);
-    expect(find.text('Tip document'), findsOneWidget);
+    expect(find.byType(ConfirmScreen), findsOneWidget);
     expect(find.text('B 123 ABC'), findsWidgets);
   });
 
@@ -124,7 +125,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(scanner.galleryCalls, 1);
-    expect(find.text('Tip document'), findsOneWidget);
+    expect(find.byType(ConfirmScreen), findsOneWidget);
     expect(find.textContaining('Am importat imaginea'), findsOneWidget);
   });
 

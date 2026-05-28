@@ -146,13 +146,6 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
           body: Center(child: Text(l10n.confirmMissingDraft)),
         );
       }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _draftApplied) return;
-        setState(() {
-          _draftApplied = true;
-          _initFromDraft(draft);
-        });
-      });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
