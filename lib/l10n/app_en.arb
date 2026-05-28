@@ -20,7 +20,20 @@
   "rovinietaHint": "Enter manually if you don't have a confirmation photo.",
   "scanDocument": "Scan document",
   "importGallery": "Import from gallery",
-  "galleryImportTestInfo": "Real gallery import will be added in a later version. This is a test flow.",
+  "galleryImportHelper": "Image imported. Verify the document and enter the expiry date.",
+  "galleryImportFailed": "Could not import the image. Please try again.",
+  "documentImageUnavailable": "The document image cannot be displayed.",
+  "importingImage": "Importing image…",
+  "confirmMissingDraft": "Could not open confirmation. Please try again.",
+  "buildInfoTitle": "QA build",
+  "buildInfoValue": "Build: {label} / v{version} / {date}",
+  "@buildInfoValue": {
+    "placeholders": {
+      "label": {"type": "String"},
+      "version": {"type": "String"},
+      "date": {"type": "String"}
+    }
+  },
   "manualEntry": "Manual entry",
   "analyzingDocument": "Analyzing document…",
   "confirmDisclaimer": "Verify the data. The app does not replace official documents. OCR is only a suggestion.",

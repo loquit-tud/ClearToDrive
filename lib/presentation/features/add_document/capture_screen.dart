@@ -1,4 +1,5 @@
 import 'package:cleartodrive/domain/enums/document_enums.dart';
+import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
 import 'package:cleartodrive/presentation/widgets/document_card.dart';
@@ -19,11 +20,21 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   DocumentType get _type =>
       ref.read(selectedDocumentTypeProvider) ?? DocumentType.rca;
 
-  Future<void> _run(Future<void> Function() action) async {
+  var _loadingMessage = '';
+
+  Future<void> _runScan() async {
     final l10n = AppLocalizations.of(context);
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadingMessage = l10n.analyzingDocument;
+    });
     try {
-      await action();
+      final draft = await ref
+          .read(scanAndExtractUseCaseProvider)
+          .fromScan(typeHint: _type);
+      if (!mounted) return;
+      ref.read(confirmDraftProvider.notifier).state = draft;
+      context.push('/confirm');
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -35,30 +46,30 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
     }
   }
 
-  Future<void> _scan() async {
-    await _run(() async {
-      final draft = await ref
-          .read(scanAndExtractUseCaseProvider)
-          .fromScan(typeHint: _type);
-      ref.read(confirmDraftProvider.notifier).state = draft;
-      if (mounted) context.push('/confirm');
+  Future<void> _importFromGallery() async {
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _loading = true;
+      _loadingMessage = l10n.importingImage;
     });
-  }
-
-  Future<void> _import() async {
-    await _run(() async {
-      final l10n = AppLocalizations.of(context);
+    try {
       final draft = await ref
-          .read(scanAndExtractUseCaseProvider)
-          .fromGallery(typeHint: _type);
+          .read(importFromGalleryUseCaseProvider)
+          .execute(typeHint: _type);
+      if (!mounted) return;
       ref.read(confirmDraftProvider.notifier).state = draft;
+      context.push('/confirm');
+    } on ScanCancelled {
+      // User dismissed picker — stay on capture, no message.
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.galleryImportTestInfo)),
+          SnackBar(content: Text(l10n.galleryImportFailed)),
         );
       }
-      if (mounted) context.push('/confirm');
-    });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _manual() {
@@ -102,13 +113,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
-                  onPressed: _loading ? null : _scan,
+                  onPressed: _loading ? null : _runScan,
                   icon: const Icon(Icons.camera_alt_outlined),
                   label: Text(l10n.scanDocument),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: _loading ? null : _import,
+                  onPressed: _loading ? null : _importFromGallery,
                   icon: const Icon(Icons.photo_library_outlined),
                   label: Text(l10n.importGallery),
                 ),
@@ -132,7 +143,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
                       children: [
                         const CircularProgressIndicator(),
                         const SizedBox(height: 16),
-                        Text(l10n.analyzingDocument),
+                        Text(_loadingMessage),
                       ],
                     ),
                   ),

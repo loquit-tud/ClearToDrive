@@ -1,4 +1,6 @@
+import 'package:cleartodrive/core/build_info.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -124,9 +126,20 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.phone_android_outlined),
             title: Text(l10n.dataStaysOnDevice),
           ),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: Text(l10n.buildInfoTitle),
+            subtitle: Text(
+              l10n.buildInfoValue(
+                BuildInfo.buildLabel,
+                BuildInfo.appVersion,
+                DateFormat('yyyy-MM-dd').format(DateTime.now()),
+              ),
+            ),
+          ),
           const AboutListTile(
             applicationName: 'ClearToDrive',
-            applicationVersion: '0.1.0',
+            applicationVersion: BuildInfo.appVersion,
           ),
         ],
       ),

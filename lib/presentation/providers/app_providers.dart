@@ -1,6 +1,7 @@
 import 'package:cleartodrive/application/use_cases/confirm_document_use_case.dart';
 import 'package:cleartodrive/application/use_cases/list_documents_use_case.dart';
 import 'package:cleartodrive/application/use_cases/reschedule_all_reminders_use_case.dart';
+import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.dart';
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/application/use_cases/send_test_notification_use_case.dart';
 import 'package:cleartodrive/di/injection.dart';
@@ -21,6 +22,10 @@ final scanAndExtractUseCaseProvider = Provider<ScanAndExtractUseCase>(
     getIt<DocumentScannerService>(),
     getIt<DocumentFieldExtractor>(),
   ),
+);
+
+final importFromGalleryUseCaseProvider = Provider<ImportFromGalleryUseCase>(
+  (ref) => ImportFromGalleryUseCase(getIt<DocumentScannerService>()),
 );
 
 final confirmDocumentUseCaseProvider = Provider<ConfirmDocumentUseCase>(

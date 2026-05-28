@@ -11,8 +11,11 @@ import 'package:cleartodrive/domain/repositories/vehicle_repository.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/domain/services/reminder_service.dart';
+import 'package:cleartodrive/platform/document_scanner/composite_document_scanner_service.dart';
 import 'package:cleartodrive/platform/document_scanner/fake_document_scanner_service.dart';
+import 'package:cleartodrive/platform/document_scanner/image_picker_gallery_scanner_service.dart';
 import 'package:cleartodrive/platform/ocr/fake_document_field_extractor.dart';
+import 'package:cleartodrive/platform/storage/document_image_store.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:uuid/uuid.dart';
@@ -47,8 +50,16 @@ void configureDependencies() {
       getIt<NotificationScheduler>(),
     ),
   );
+  getIt.registerLazySingleton<DocumentImageStore>(
+    () => AppDocumentImageStore(getIt<Uuid>()),
+  );
   getIt.registerLazySingleton<DocumentScannerService>(
-    FakeDocumentScannerService.new,
+    () => CompositeDocumentScannerService(
+      scanDelegate: FakeDocumentScannerService(),
+      galleryDelegate: ImagePickerGalleryScannerService(
+        getIt<DocumentImageStore>(),
+      ),
+    ),
   );
   getIt.registerLazySingleton<DocumentFieldExtractor>(
     FakeDocumentFieldExtractor.new,

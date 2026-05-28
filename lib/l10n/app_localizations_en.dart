@@ -73,8 +73,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importGallery => 'Import from gallery';
 
   @override
-  String get galleryImportTestInfo =>
-      'Real gallery import will be added in a later version. This is a test flow.';
+  String get galleryImportHelper =>
+      'Image imported. Verify the document and enter the expiry date.';
+
+  @override
+  String get galleryImportFailed =>
+      'Could not import the image. Please try again.';
+
+  @override
+  String get documentImageUnavailable =>
+      'The document image cannot be displayed.';
+
+  @override
+  String get importingImage => 'Importing image…';
+
+  @override
+  String get confirmMissingDraft =>
+      'Could not open confirmation. Please try again.';
+
+  @override
+  String get buildInfoTitle => 'QA build';
+
+  @override
+  String buildInfoValue(String label, String version, String date) {
+    return 'Build: $label / v$version / $date';
+  }
 
   @override
   String get manualEntry => 'Manual entry';

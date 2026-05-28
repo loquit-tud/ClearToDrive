@@ -218,11 +218,47 @@ abstract class AppLocalizations {
   /// **'Import from gallery'**
   String get importGallery;
 
-  /// No description provided for @galleryImportTestInfo.
+  /// No description provided for @galleryImportHelper.
   ///
   /// In en, this message translates to:
-  /// **'Real gallery import will be added in a later version. This is a test flow.'**
-  String get galleryImportTestInfo;
+  /// **'Image imported. Verify the document and enter the expiry date.'**
+  String get galleryImportHelper;
+
+  /// No description provided for @galleryImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import the image. Please try again.'**
+  String get galleryImportFailed;
+
+  /// No description provided for @documentImageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The document image cannot be displayed.'**
+  String get documentImageUnavailable;
+
+  /// No description provided for @importingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing image…'**
+  String get importingImage;
+
+  /// No description provided for @confirmMissingDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open confirmation. Please try again.'**
+  String get confirmMissingDraft;
+
+  /// No description provided for @buildInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'QA build'**
+  String get buildInfoTitle;
+
+  /// No description provided for @buildInfoValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Build: {label} / v{version} / {date}'**
+  String buildInfoValue(String label, String version, String date);
 
   /// No description provided for @manualEntry.
   ///

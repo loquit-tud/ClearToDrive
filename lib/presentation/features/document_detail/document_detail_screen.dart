@@ -2,6 +2,7 @@ import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
 import 'package:cleartodrive/presentation/widgets/document_card.dart';
+import 'package:cleartodrive/presentation/widgets/document_image_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -64,21 +65,14 @@ class DocumentDetailScreen extends ConsumerWidget {
                 onTap: () {},
               ),
               const SizedBox(height: 16),
+              DocumentImagePreview(imagePath: doc.imagePath),
+              const SizedBox(height: 16),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _sourceLabel(l10n, doc.source),
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      if (doc.imagePath != null) ...[
-                        const SizedBox(height: 8),
-                        Text(doc.imagePath!),
-                      ],
-                    ],
+                  child: Text(
+                    _sourceLabel(l10n, doc.source),
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
               ),

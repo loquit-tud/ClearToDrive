@@ -3,6 +3,7 @@ import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
 import 'package:cleartodrive/presentation/widgets/document_card.dart';
+import 'package:cleartodrive/presentation/widgets/document_image_preview.dart';
 import 'package:cleartodrive/presentation/widgets/document_type_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -113,6 +114,11 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     }
   }
 
+  bool get _isGalleryImport =>
+      _source == DocumentSource.import &&
+      _imagePath != null &&
+      !_imagePath!.startsWith('fake://');
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -126,7 +132,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       if (draft == null && _type == null) {
         return Scaffold(
           appBar: AppBar(),
-          body: Center(child: Text(l10n.completeManually)),
+          body: Center(child: Text(l10n.confirmMissingDraft)),
         );
       }
       if (draft != null) _initFromDraft(draft);
@@ -135,7 +141,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     if (_type == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: Center(child: Text(l10n.completeManually)),
+        body: Center(child: Text(l10n.confirmMissingDraft)),
       );
     }
 
@@ -146,17 +152,14 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DisclaimerBanner(message: l10n.confirmDisclaimer),
+            if (_isGalleryImport)
+              DisclaimerBanner(message: l10n.galleryImportHelper)
+            else
+              DisclaimerBanner(message: l10n.confirmDisclaimer),
             const SizedBox(height: 16),
-            if (_imagePath != null)
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.image_outlined),
-                  title: Text(_imagePath!),
-                  subtitle: Text(l10n.sourceScan),
-                ),
-              ),
-            const SizedBox(height: 16),
+            DocumentImagePreview(imagePath: _imagePath),
+            if (_imagePath != null && !_imagePath!.startsWith('fake://'))
+              const SizedBox(height: 16),
             DocumentTypeSelector(
               value: _type!,
               enabled: !_saving,

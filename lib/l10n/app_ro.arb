@@ -20,7 +20,20 @@
   "rovinietaHint": "Introdu manual dacă nu ai o poză cu confirmarea.",
   "scanDocument": "Scanează document",
   "importGallery": "Importă din galerie",
-  "galleryImportTestInfo": "Importul real din galerie va fi adăugat într-o versiune următoare. Acesta este un flux de test.",
+  "galleryImportHelper": "Am importat imaginea. Verifică documentul și completează data expirării.",
+  "galleryImportFailed": "Nu am putut importa imaginea. Încearcă din nou.",
+  "documentImageUnavailable": "Imaginea documentului nu poate fi afișată.",
+  "importingImage": "Se importă imaginea…",
+  "confirmMissingDraft": "Nu am putut deschide confirmarea. Încearcă din nou.",
+  "buildInfoTitle": "Build QA",
+  "buildInfoValue": "Build: {label} / v{version} / {date}",
+  "@buildInfoValue": {
+    "placeholders": {
+      "label": {"type": "String"},
+      "version": {"type": "String"},
+      "date": {"type": "String"}
+    }
+  },
   "manualEntry": "Introducere manuală",
   "analyzingDocument": "Se analizează documentul…",
   "confirmDisclaimer": "Verifică datele. Aplicația nu înlocuiește documentele oficiale. OCR-ul este doar o sugestie.",

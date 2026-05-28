@@ -73,8 +73,31 @@ class AppLocalizationsRo extends AppLocalizations {
   String get importGallery => 'Importă din galerie';
 
   @override
-  String get galleryImportTestInfo =>
-      'Importul real din galerie va fi adăugat într-o versiune următoare. Acesta este un flux de test.';
+  String get galleryImportHelper =>
+      'Am importat imaginea. Verifică documentul și completează data expirării.';
+
+  @override
+  String get galleryImportFailed =>
+      'Nu am putut importa imaginea. Încearcă din nou.';
+
+  @override
+  String get documentImageUnavailable =>
+      'Imaginea documentului nu poate fi afișată.';
+
+  @override
+  String get importingImage => 'Se importă imaginea…';
+
+  @override
+  String get confirmMissingDraft =>
+      'Nu am putut deschide confirmarea. Încearcă din nou.';
+
+  @override
+  String get buildInfoTitle => 'Build QA';
+
+  @override
+  String buildInfoValue(String label, String version, String date) {
+    return 'Build: $label / v$version / $date';
+  }
 
   @override
   String get manualEntry => 'Introducere manuală';
