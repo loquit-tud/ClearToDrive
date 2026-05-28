@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.dart';
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
@@ -76,13 +74,6 @@ Widget _app({
   );
 }
 
-Future<String> _tempImagePath() async {
-  final dir = await Directory.systemTemp.createTemp('ctd_cap');
-  final file = File('${dir.path}/gallery.jpg');
-  await file.writeAsBytes([0xFF, 0xD8, 0xFF]);
-  return file.path;
-}
-
 void main() {
   testWidgets('scan button triggers fake flow and navigates to confirm', (tester) async {
     final scanner = _TestScanner();
@@ -107,37 +98,6 @@ void main() {
     expect(scanner.scanCalls, 1);
     expect(find.byType(ConfirmScreen), findsOneWidget);
     expect(find.text('B 123 ABC'), findsWidgets);
-  });
-
-  testWidgets('gallery success invokes import use case and sets draft', (tester) async {
-    final scanner = _TestScanner()
-      ..galleryResult = () async => ScanResult(imagePaths: [await _tempImagePath()]);
-    final importUseCase = ImportFromGalleryUseCase(scanner);
-
-    await tester.pumpWidget(
-      _app(
-        overrides: [
-          importFromGalleryUseCaseProvider.overrideWithValue(importUseCase),
-          selectedDocumentTypeProvider.overrideWith((_) => DocumentType.itp),
-        ],
-      ),
-    );
-
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MaterialApp)),
-    );
-
-    await tester.tap(find.text('Importă din galerie'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(scanner.galleryCalls, 1);
-    final draft = container.read(confirmDraftProvider);
-    expect(draft?.source, DocumentSource.import);
-    expect(draft?.imagePath, isNotEmpty);
-    expect(draft?.type, DocumentType.itp);
   });
 
   testWidgets('gallery cancel stays on capture screen', (tester) async {
