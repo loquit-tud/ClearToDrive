@@ -124,18 +124,18 @@ void main() {
     );
 
     await tester.tap(find.text('Importă din galerie'));
-    await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    });
-    await tester.pump(const Duration(milliseconds: 200));
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (_testRouter!.state.matchedLocation == '/confirm') break;
+    }
 
     expect(scanner.galleryCalls, 1);
+    expect(_testRouter!.state.matchedLocation, '/confirm');
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(CaptureScreen)),
+      tester.element(find.byType(MaterialApp)),
     );
     expect(container.read(confirmDraftProvider)?.source, DocumentSource.import);
     expect(container.read(confirmDraftProvider)?.imagePath, isNotEmpty);
-    expect(_testRouter!.state.matchedLocation, '/confirm');
   });
 
   testWidgets('gallery cancel stays on capture screen', (tester) async {

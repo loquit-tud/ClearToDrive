@@ -27,7 +27,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          confirmDraftProvider.overrideWith((_) => draft),
+          confirmDraftProvider.overrideWithValue(draft),
         ],
         child: MaterialApp.router(
           routerConfig: GoRouter(
@@ -45,6 +45,7 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
     await tester.pump();
 
     expect(find.textContaining('Am importat imaginea'), findsOneWidget);

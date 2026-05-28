@@ -37,13 +37,19 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     if (widget.editDocumentId != null) {
       _loadingEdit = true;
       _loadEdit();
-    } else {
-      final draft = ref.read(confirmDraftProvider);
-      if (draft != null) {
-        _draftApplied = true;
-        _initFromDraft(draft);
-      }
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_draftApplied || widget.editDocumentId != null) return;
+    final draft = ref.read(confirmDraftProvider);
+    if (draft == null) return;
+    setState(() {
+      _draftApplied = true;
+      _initFromDraft(draft);
+    });
   }
 
   @override
@@ -136,13 +142,14 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
 
     if (widget.editDocumentId == null && !_draftApplied) {
       final draft = ref.watch(confirmDraftProvider);
-      if (draft == null) {
-        return Scaffold(
-          appBar: AppBar(),
-          body: Center(child: Text(l10n.confirmMissingDraft)),
-        );
-      }
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Text(
+            draft == null ? l10n.confirmMissingDraft : l10n.analyzingDocument,
+          ),
+        ),
+      );
     }
 
     if (_type == null) {
