@@ -81,6 +81,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Image imported. Verify the document and enter the expiry date.';
 
   @override
+  String get rcaOcrExpiryDetected =>
+      'We found a possible expiry date. Verify it before saving.';
+
+  @override
+  String get rcaOcrExpiryNotDetected =>
+      'We could not read the expiry date automatically. Enter it manually.';
+
+  @override
+  String get rcaOcrExpiryLowConfidence =>
+      'We found a possible expiry date with low confidence. Verify it before saving.';
+
+  @override
   String get galleryImportFailed =>
       'Could not import the image. Please try again.';
 

@@ -25,7 +25,10 @@ final scanAndExtractUseCaseProvider = Provider<ScanAndExtractUseCase>(
 );
 
 final importFromGalleryUseCaseProvider = Provider<ImportFromGalleryUseCase>(
-  (ref) => ImportFromGalleryUseCase(getIt<DocumentScannerService>()),
+  (ref) => ImportFromGalleryUseCase(
+    getIt<DocumentScannerService>(),
+    getIt<DocumentFieldExtractor>(),
+  ),
 );
 
 final confirmDocumentUseCaseProvider = Provider<ConfirmDocumentUseCase>(

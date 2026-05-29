@@ -2,6 +2,18 @@ import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 
+/// How OCR suggested the expiry field on the confirm screen.
+enum OcrExpirySuggestion {
+  /// OCR found a plausible RCA expiry — user must verify.
+  detected,
+
+  /// OCR ran but could not read expiry — user fills manually.
+  notDetected,
+
+  /// OCR suggested expiry with low confidence — user must verify carefully.
+  lowConfidence,
+}
+
 class ConfirmDraft {
   const ConfirmDraft({
     required this.type,
@@ -11,6 +23,7 @@ class ConfirmDraft {
     this.imagePath,
     this.documentId,
     this.vehicleId,
+    this.ocrExpirySuggestion,
   });
 
   final DocumentType type;
@@ -20,6 +33,7 @@ class ConfirmDraft {
   final String? imagePath;
   final String? documentId;
   final String? vehicleId;
+  final OcrExpirySuggestion? ocrExpirySuggestion;
 
   ConfirmDraft copyWith({
     DocumentType? type,
@@ -29,6 +43,7 @@ class ConfirmDraft {
     String? imagePath,
     String? documentId,
     String? vehicleId,
+    OcrExpirySuggestion? ocrExpirySuggestion,
   }) {
     return ConfirmDraft(
       type: type ?? this.type,
@@ -38,6 +53,7 @@ class ConfirmDraft {
       imagePath: imagePath ?? this.imagePath,
       documentId: documentId ?? this.documentId,
       vehicleId: vehicleId ?? this.vehicleId,
+      ocrExpirySuggestion: ocrExpirySuggestion ?? this.ocrExpirySuggestion,
     );
   }
 }
@@ -76,8 +92,10 @@ class ScanAndExtractUseCase {
       return ConfirmDraft(
         type: typeHint,
         licensePlate: '',
-        expiryDate: DateTime.now(),
         source: source,
+        ocrExpirySuggestion: typeHint == DocumentType.rca
+            ? OcrExpirySuggestion.notDetected
+            : null,
       );
     }
 
@@ -89,10 +107,25 @@ class ScanAndExtractUseCase {
     return ConfirmDraft(
       type: extraction.suggestedType ?? typeHint,
       licensePlate: extraction.licensePlate ?? '',
-      expiryDate: extraction.expiryDate ?? DateTime.now(),
+      expiryDate: extraction.expiryDate,
       source: source,
       imagePath: imagePath,
+      ocrExpirySuggestion: _ocrSuggestion(typeHint, extraction),
     );
+  }
+
+  OcrExpirySuggestion? _ocrSuggestion(
+    DocumentType typeHint,
+    ExtractionResult extraction,
+  ) {
+    if (typeHint != DocumentType.rca) return null;
+    if (!extraction.expiryDetected) {
+      return OcrExpirySuggestion.notDetected;
+    }
+    if (extraction.lowConfidence) {
+      return OcrExpirySuggestion.lowConfidence;
+    }
+    return OcrExpirySuggestion.detected;
   }
 }
 

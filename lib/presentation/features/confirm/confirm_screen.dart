@@ -25,6 +25,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   TextEditingController? _plateController;
   DateTime? _expiryDate;
   DocumentSource? _source;
+  OcrExpirySuggestion? _ocrExpirySuggestion;
   String? _imagePath;
   String? _documentId;
   String? _vehicleId;
@@ -94,6 +95,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     _plateController ??= TextEditingController(text: draft.licensePlate);
     _expiryDate ??= draft.expiryDate;
     _source ??= draft.source;
+    _ocrExpirySuggestion ??= draft.ocrExpirySuggestion;
     _imagePath ??= draft.imagePath;
     _documentId ??= draft.documentId;
     _vehicleId ??= draft.vehicleId;
@@ -153,6 +155,18 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       _source == DocumentSource.import &&
       _imagePath != null &&
       !_imagePath!.startsWith('fake://');
+
+  String _confirmBannerMessage(AppLocalizations l10n) {
+    if (_type == DocumentType.rca && _ocrExpirySuggestion != null) {
+      return switch (_ocrExpirySuggestion!) {
+        OcrExpirySuggestion.detected => l10n.rcaOcrExpiryDetected,
+        OcrExpirySuggestion.notDetected => l10n.rcaOcrExpiryNotDetected,
+        OcrExpirySuggestion.lowConfidence => l10n.rcaOcrExpiryLowConfidence,
+      };
+    }
+    if (_isGalleryImport) return l10n.galleryImportHelper;
+    return l10n.confirmDisclaimer;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,10 +235,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_isGalleryImport)
-              DisclaimerBanner(message: l10n.galleryImportHelper)
-            else
-              DisclaimerBanner(message: l10n.confirmDisclaimer),
+            DisclaimerBanner(message: _confirmBannerMessage(l10n)),
             const SizedBox(height: 16),
             DocumentImagePreview(imagePath: _imagePath),
             if (_imagePath != null && !_imagePath!.startsWith('fake://'))

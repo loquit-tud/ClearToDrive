@@ -81,6 +81,18 @@ class AppLocalizationsRo extends AppLocalizations {
       'Am importat imaginea. Verifică documentul și completează data expirării.';
 
   @override
+  String get rcaOcrExpiryDetected =>
+      'Am găsit o posibilă dată de expirare. Verific-o înainte de salvare.';
+
+  @override
+  String get rcaOcrExpiryNotDetected =>
+      'Nu am putut citi automat data expirării. Completează manual.';
+
+  @override
+  String get rcaOcrExpiryLowConfidence =>
+      'Am găsit o posibilă dată de expirare, dar cu încredere redusă. Verific-o înainte de salvare.';
+
+  @override
   String get galleryImportFailed =>
       'Nu am putut importa imaginea. Încearcă din nou.';
 

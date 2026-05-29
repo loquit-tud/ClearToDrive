@@ -43,8 +43,6 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.actionFailedTryAgain)));
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
