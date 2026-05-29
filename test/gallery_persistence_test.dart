@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cleartodrive/application/use_cases/confirm_document_use_case.dart';
 import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.dart';
+import 'package:cleartodrive/domain/services/document_field_extractor.dart';
 import 'package:cleartodrive/data/database/app_database.dart';
 import 'package:cleartodrive/data/repositories/drift_app_preferences_repository.dart';
 import 'package:cleartodrive/data/repositories/drift_document_repository.dart';
@@ -47,6 +48,7 @@ void main() {
 
     final importDraft = await ImportFromGalleryUseCase(
       _PathScanner(imagePath),
+      _NoOcrExtractor(),
     ).execute(typeHint: DocumentType.itp);
 
     final confirmUseCase = ConfirmDocumentUseCase(
@@ -73,6 +75,16 @@ void main() {
 
     await tempDir.delete(recursive: true);
   });
+}
+
+class _NoOcrExtractor implements DocumentFieldExtractor {
+  @override
+  Future<ExtractionResult> extract({
+    required String imagePath,
+    DocumentType? typeHint,
+  }) async {
+    return const ExtractionResult();
+  }
 }
 
 class _PathScanner implements DocumentScannerService {

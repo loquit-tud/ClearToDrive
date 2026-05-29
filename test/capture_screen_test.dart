@@ -91,7 +91,7 @@ void main() {
         overrides: [
           scanAndExtractUseCaseProvider.overrideWithValue(useCase),
           importFromGalleryUseCaseProvider.overrideWithValue(
-            ImportFromGalleryUseCase(scanner),
+            ImportFromGalleryUseCase(scanner, _TestExtractor()),
           ),
           selectedDocumentTypeProvider.overrideWith((_) => DocumentType.rca),
         ],
@@ -110,7 +110,7 @@ void main() {
   testWidgets('gallery cancel stays on capture screen', (tester) async {
     final scanner = _TestScanner()
       ..galleryResult = () async => throw const ScanCancelled();
-    final importUseCase = ImportFromGalleryUseCase(scanner);
+    final importUseCase = ImportFromGalleryUseCase(scanner, _TestExtractor());
 
     await tester.pumpWidget(
       _app(
@@ -132,7 +132,7 @@ void main() {
   testWidgets('gallery failure shows error and stays on capture', (tester) async {
     final scanner = _TestScanner()
       ..galleryResult = () async => throw const ScanFailed();
-    final importUseCase = ImportFromGalleryUseCase(scanner);
+    final importUseCase = ImportFromGalleryUseCase(scanner, _TestExtractor());
 
     await tester.pumpWidget(
       _app(

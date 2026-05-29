@@ -60,6 +60,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
           .read(importFromGalleryUseCaseProvider)
           .execute(typeHint: type);
       if (!mounted) return;
+      setState(() {
+        _loading = true;
+        _loadingMessage = l10n.analyzingDocument;
+      });
       ref.read(confirmDraftProvider.notifier).state = draft;
       await context.push('/confirm', extra: draft);
     } on ScanCancelled {
@@ -70,6 +74,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.galleryImportFailed)));
       }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 

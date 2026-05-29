@@ -230,6 +230,24 @@ abstract class AppLocalizations {
   /// **'Image imported. Verify the document and enter the expiry date.'**
   String get galleryImportHelper;
 
+  /// No description provided for @rcaOcrExpiryDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'We found a possible expiry date. Verify it before saving.'**
+  String get rcaOcrExpiryDetected;
+
+  /// No description provided for @rcaOcrExpiryNotDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not read the expiry date automatically. Enter it manually.'**
+  String get rcaOcrExpiryNotDetected;
+
+  /// No description provided for @rcaOcrExpiryLowConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'We found a possible expiry date with low confidence. Verify it before saving.'**
+  String get rcaOcrExpiryLowConfidence;
+
   /// No description provided for @galleryImportFailed.
   ///
   /// In en, this message translates to:

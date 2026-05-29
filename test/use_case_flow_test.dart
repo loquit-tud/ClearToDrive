@@ -11,7 +11,8 @@ import 'package:cleartodrive/domain/repositories/document_repository.dart';
 import 'package:cleartodrive/domain/repositories/vehicle_repository.dart';
 import 'package:cleartodrive/domain/services/reminder_service.dart';
 import 'package:cleartodrive/platform/document_scanner/fake_document_scanner_service.dart';
-import 'package:cleartodrive/platform/ocr/fake_document_field_extractor.dart';
+import 'package:cleartodrive/platform/ocr/fake_ocr_text_recognition_service.dart';
+import 'package:cleartodrive/platform/ocr/parsing_document_field_extractor.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
 
@@ -26,7 +27,7 @@ void main() {
 
     final scanUseCase = ScanAndExtractUseCase(
       FakeDocumentScannerService(),
-      FakeDocumentFieldExtractor(),
+      ParsingDocumentFieldExtractor(FakeOcrTextRecognitionService()),
     );
     final confirmUseCase = ConfirmDocumentUseCase(
       vehicleRepo,
@@ -40,6 +41,7 @@ void main() {
     final draft = await scanUseCase.fromScan(typeHint: DocumentType.rca);
     expect(draft.licensePlate, 'B 123 ABC');
     expect(draft.type, DocumentType.rca);
+    expect(draft.expiryDate, DateTime(2026, 5, 28));
 
     await confirmUseCase.save(draft);
 
