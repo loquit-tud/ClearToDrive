@@ -330,6 +330,17 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
       );
     }
 
+    for (var i = 2; i < tokens.length; i++) {
+      if (!tokens[i].isYear) continue;
+      final singleDate = _dateFromParts(
+        day: tokens[i - 2].text,
+        month: tokens[i - 1].text,
+        year: tokens[i].text,
+      );
+      if (singleDate == null || singleDate.year <= reference.year) continue;
+      addChoice(singleDate, 150, 0.7);
+    }
+
     if (choices.isEmpty) return null;
     choices.sort((a, b) {
       final scoreCompare = b.score.compareTo(a.score);
@@ -462,9 +473,11 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
   }
 
   String _normalizeDateScanText(String input) {
-    return _normalizeText(
-      input,
-    ).replaceAll('o', '0').replaceAll('i', '1').replaceAll('l', '1');
+    return _normalizeText(input)
+        .replaceAll('o', '0')
+        .replaceAll('i', '1')
+        .replaceAll('l', '1')
+        .replaceAll('s', '5');
   }
 
   String _rcaValidityScanText(String rawText, String normalizedText) {

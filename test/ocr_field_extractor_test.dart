@@ -202,4 +202,45 @@ void main() {
     expect(result.expiryDate, isNull);
     expect(result.licensePlate, 'PH 85 GJD');
   });
+
+  test(
+    'RCA green card accepts single future PANA LA date in day month year order',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'CARTE INTERNATIONALA DE ASIGURARE\n'
+          'VALABILITATE - VALID\n'
+          'PANA LA - TO\n'
+          'Ziua Luna Anul\n'
+          '08 05 2027\n'
+          'PH85GJD',
+        ),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.expiryDate, DateTime(2027, 5, 8));
+      expect(result.expiryDate, isNot(DateTime(2027, 8, 5)));
+    },
+  );
+
+  test(
+    'RCA green card tolerates OCR month digit mistakes in expiry date',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'CARTE INTERNATIONALA DE ASIGURARE\n'
+          'VALABILITATE - VALID\n'
+          'PANA LA - TO\n'
+          'Ziua Luna Anul\n'
+          'O8 OS 2O27\n'
+          'PH85GJD',
+        ),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.expiryDate, DateTime(2027, 5, 8));
+    },
+  );
 }
