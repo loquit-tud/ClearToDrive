@@ -102,4 +102,57 @@ void main() {
 
     await tester.runAsync(() => image.parent.delete(recursive: true));
   });
+
+  testWidgets('confirm route exposes raw OCR text for QA', (tester) async {
+    final image = (await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp('ctd_confirm_ocr');
+      final image = File('${dir.path}/rca.jpg');
+      await image.writeAsBytes([0xFF, 0xD8, 0xFF]);
+      return image;
+    }))!;
+
+    final draft = ConfirmDraft(
+      type: DocumentType.rca,
+      licensePlate: 'PH 85 GLD',
+      source: DocumentSource.import,
+      imagePath: image.path,
+      assistStatus: DocumentAssistStatus.ocrNoData,
+      needsManualReview: true,
+      ocrRawText: 'VALABILITATE VALID\nPANA LA TO\n08 05 2027',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [confirmDraftProvider.overrideWith((ref) => draft)],
+        child: MaterialApp.router(
+          routerConfig: GoRouter(
+            initialLocation: '/confirm',
+            routes: [
+              GoRoute(
+                path: '/confirm',
+                builder: (_, state) => ConfirmScreen(
+                  initialDraft: state.extra is ConfirmDraft
+                      ? state.extra! as ConfirmDraft
+                      : null,
+                ),
+              ),
+            ],
+          ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('ro'),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+
+    expect(find.text('Text OCR detectat'), findsOneWidget);
+    await tester.tap(find.text('Text OCR detectat'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('08 05 2027'), findsOneWidget);
+
+    await tester.runAsync(() => image.parent.delete(recursive: true));
+  });
 }

@@ -96,6 +96,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ocrVerifyManually => 'check manually';
 
   @override
+  String get ocrRawTextTitle => 'Detected OCR text';
+
+  @override
+  String get ocrRawTextHint =>
+      'For QA: send this text if the date is not recognized.';
+
+  @override
+  String get ocrRawTextEmpty => 'No OCR text was detected.';
+
+  @override
   String get galleryImportFailed =>
       'Could not import the image. Please try again.';
 

@@ -28,6 +28,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   String? _imagePath;
   String? _documentId;
   String? _vehicleId;
+  String _ocrRawText = '';
   DocumentAssistStatus _assistStatus = DocumentAssistStatus.none;
   var _needsManualReview = false;
   var _saving = false;
@@ -87,6 +88,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       _imagePath = detail.document.imagePath;
       _documentId = detail.document.id;
       _vehicleId = detail.document.vehicleId;
+      _ocrRawText = '';
       _assistStatus = DocumentAssistStatus.none;
       _needsManualReview = false;
       _loadingEdit = false;
@@ -101,6 +103,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     _imagePath ??= draft.imagePath;
     _documentId ??= draft.documentId;
     _vehicleId ??= draft.vehicleId;
+    _ocrRawText = draft.ocrRawText.trim();
     _assistStatus = draft.assistStatus;
     _needsManualReview = draft.needsManualReview;
   }
@@ -251,6 +254,10 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
                 ),
               ),
             ],
+            if (_isOcrImport) ...[
+              const SizedBox(height: 8),
+              _OcrRawTextPanel(rawText: _ocrRawText),
+            ],
             const SizedBox(height: 16),
             DocumentImagePreview(imagePath: _imagePath),
             if (_imagePath != null && !_imagePath!.startsWith('fake://'))
@@ -321,6 +328,46 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OcrRawTextPanel extends StatelessWidget {
+  const _OcrRawTextPanel({required this.rawText});
+
+  final String rawText;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final text = rawText.trim();
+
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+      borderRadius: BorderRadius.circular(12),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        title: Text(
+          l10n.ocrRawTextTitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(l10n.ocrRawTextHint, style: theme.textTheme.bodySmall),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SelectableText(
+              text.isEmpty ? l10n.ocrRawTextEmpty : text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

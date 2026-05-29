@@ -96,6 +96,16 @@ class AppLocalizationsRo extends AppLocalizations {
   String get ocrVerifyManually => 'verifică manual';
 
   @override
+  String get ocrRawTextTitle => 'Text OCR detectat';
+
+  @override
+  String get ocrRawTextHint =>
+      'Pentru QA: trimite acest text dacă data nu este recunoscută.';
+
+  @override
+  String get ocrRawTextEmpty => 'Nu există text OCR detectat.';
+
+  @override
   String get galleryImportFailed =>
       'Nu am putut importa imaginea. Încearcă din nou.';
 

@@ -254,6 +254,24 @@ abstract class AppLocalizations {
   /// **'check manually'**
   String get ocrVerifyManually;
 
+  /// No description provided for @ocrRawTextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected OCR text'**
+  String get ocrRawTextTitle;
+
+  /// No description provided for @ocrRawTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For QA: send this text if the date is not recognized.'**
+  String get ocrRawTextHint;
+
+  /// No description provided for @ocrRawTextEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No OCR text was detected.'**
+  String get ocrRawTextEmpty;
+
   /// No description provided for @galleryImportFailed.
   ///
   /// In en, this message translates to:
