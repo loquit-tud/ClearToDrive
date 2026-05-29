@@ -174,6 +174,9 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
 
   String _helperMessage(AppLocalizations l10n) {
     if (_assistStatus == DocumentAssistStatus.ocrSuccess) {
+      if (_type == DocumentType.rca && _expiryDate != null) {
+        return l10n.rcaOcrExpiryHelper;
+      }
       return l10n.ocrImportSuccessHelper;
     }
     if (_assistStatus == DocumentAssistStatus.ocrNoData) {

@@ -85,6 +85,10 @@ class AppLocalizationsRo extends AppLocalizations {
       'Am găsit câteva date automat. Verifică-le înainte de salvare.';
 
   @override
+  String get rcaOcrExpiryHelper =>
+      'Am găsit o posibilă dată de expirare. Verific-o înainte de salvare.';
+
+  @override
   String get ocrImportFailureHelper =>
       'Nu am putut citi automat datele. Completează manual data expirării.';
 

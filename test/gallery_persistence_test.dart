@@ -83,6 +83,54 @@ void main() {
 
     await tempDir.delete(recursive: true);
   });
+
+  test(
+    'saving imported RCA uses confirmed expiry, not raw OCR expiry',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp('ctd_persist_rca');
+      final imagePath = p.join(tempDir.path, 'rca.jpg');
+      await File(imagePath).writeAsBytes([0xFF, 0xD8, 0xFF]);
+
+      final executor = NativeDatabase.memory();
+      final db = AppDatabase.forTesting(executor);
+      final vehicleRepo = DriftVehicleRepository(db);
+      final docRepo = DriftDocumentRepository(db);
+      final prefsRepo = DriftAppPreferencesRepository(db);
+      final uuid = const Uuid();
+
+      final importDraft = await ImportFromGalleryUseCase(
+        _PathScanner(imagePath),
+        const _RcaOcrService(),
+        const RomanianDocumentFieldExtractor(),
+      ).execute(typeHint: DocumentType.rca);
+
+      expect(importDraft.expiryDate, DateTime(2027, 8, 5));
+
+      final confirmUseCase = ConfirmDocumentUseCase(
+        vehicleRepo,
+        docRepo,
+        _FakeReminderService(),
+        prefsRepo,
+        uuid,
+      );
+
+      final confirmedExpiry = DateTime(2027, 9, 10);
+      final saved = await confirmUseCase.save(
+        importDraft.copyWith(expiryDate: confirmedExpiry),
+      );
+
+      expect(saved.type, DocumentType.rca);
+      expect(saved.expiryDate, confirmedExpiry);
+      expect(saved.expiryDate, isNot(importDraft.expiryDate));
+      expect(saved.imagePath, imagePath);
+      expect(
+        (await vehicleRepo.getById(saved.vehicleId))?.licensePlate,
+        'PH 85 GLD',
+      );
+
+      await tempDir.delete(recursive: true);
+    },
+  );
 }
 
 class _FixedOcrService implements DocumentOcrService {
@@ -92,6 +140,19 @@ class _FixedOcrService implements DocumentOcrService {
   Future<OcrTextResult> recognizeText(String imagePath) async {
     return const OcrTextResult.success(
       'Certificat ITP B 111 OCR valabil pana 29.08.2026',
+    );
+  }
+}
+
+class _RcaOcrService implements DocumentOcrService {
+  const _RcaOcrService();
+
+  @override
+  Future<OcrTextResult> recognizeText(String imagePath) async {
+    return const OcrTextResult.success(
+      'CARTE INTERNATIONALA DE ASIGURARE RCA\n'
+      'DE LA - FROM 05 08 2026 PANA LA - TO 05 08 2027\n'
+      'PH85GLD',
     );
   }
 }

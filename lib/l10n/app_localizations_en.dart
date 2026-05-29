@@ -85,6 +85,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'I found a few details automatically. Check them before saving.';
 
   @override
+  String get rcaOcrExpiryHelper =>
+      'I found a possible expiry date. Check it before saving.';
+
+  @override
   String get ocrImportFailureHelper =>
       'Could not read the data automatically. Enter the expiry date manually.';
 

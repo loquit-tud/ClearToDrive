@@ -38,6 +38,33 @@ If OCR fails or finds no useful data, Confirm should still open and show the imp
 
 This is not a fatal error and should not return to Home.
 
+## RCA / Carte Verde OCR
+
+For RCA / Carte Verde / Green Card documents, the validity range can appear as split OCR text:
+
+```text
+DE LA - FROM
+Ziua-Day / Luna-Month / Anul-Year
+05 / 08 / 2026
+
+PANA LA - TO
+Ziua-Day / Luna-Month / Anul-Year
+05 / 08 / 2027
+```
+
+`DE LA / FROM` is the start date. `PANA LA / PÂNĂ LA / TO` is the expiry date. In the example above, Confirm should suggest `05.08.2027`, not `05.08.2026`.
+
+Normal ranges should behave the same way:
+
+```text
+Valabilitate: 05.08.2026 - 05.08.2027
+de la 05/08/2026 pana la 05/08/2027
+```
+
+If the user selected `RCA` before import, the document type should remain `RCA` even if OCR text contains noisy words like `ITP`. Plate text such as `PH85GLD` should normalize to `PH 85 GLD`.
+
+The user must still confirm manually. OCR is only a suggestion and must never be saved automatically.
+
 ## Mandatory confirmation
 
 OCR data is not legal truth. ClearToDrive must never save OCR output automatically. The user must review, edit if needed, and tap `Salvează`.

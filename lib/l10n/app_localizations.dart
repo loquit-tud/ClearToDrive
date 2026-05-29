@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'I found a few details automatically. Check them before saving.'**
   String get ocrImportSuccessHelper;
 
+  /// No description provided for @rcaOcrExpiryHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'I found a possible expiry date. Check it before saving.'**
+  String get rcaOcrExpiryHelper;
+
   /// No description provided for @ocrImportFailureHelper.
   ///
   /// In en, this message translates to:

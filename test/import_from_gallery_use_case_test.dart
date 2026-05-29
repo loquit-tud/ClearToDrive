@@ -57,6 +57,33 @@ void main() {
     },
   );
 
+  test(
+    'gallery import keeps selected RCA when OCR text contains noisy ITP',
+    () async {
+      const path = '/data/imported/rca.jpg';
+      final ocr = _MockOcrService(
+        const OcrTextResult.success(
+          'ITP apare ca zgomot OCR\n'
+          'CARTE INTERNATIONALA DE ASIGURARE RCA\n'
+          'DE LA - FROM 05 08 2026 PANA LA - TO 05 08 2027\n'
+          'PH85GLD',
+        ),
+      );
+      final useCase = ImportFromGalleryUseCase(
+        _MockScanner(onPick: () async => const ScanResult(imagePaths: [path])),
+        ocr,
+        const RomanianDocumentFieldExtractor(),
+      );
+
+      final draft = await useCase.execute(typeHint: DocumentType.rca);
+
+      expect(draft.type, DocumentType.rca);
+      expect(draft.licensePlate, 'PH 85 GLD');
+      expect(draft.expiryDate, DateTime(2027, 8, 5));
+      expect(draft.assistStatus, DocumentAssistStatus.ocrSuccess);
+    },
+  );
+
   test('gallery cancel propagates ScanCancelled', () async {
     final useCase = ImportFromGalleryUseCase(
       _MockScanner(onPick: () async => throw const ScanCancelled()),

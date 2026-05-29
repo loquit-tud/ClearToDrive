@@ -243,4 +243,80 @@ void main() {
       expect(result.expiryDate, DateTime(2027, 5, 8));
     },
   );
+
+  test('RCA fragmented Green Card range chooses PANA LA expiry date', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'CARTE INTERNATIONALA DE ASIGURARE\n'
+        'DE LA - FROM\n'
+        'Ziua-Day / Luna-Month / Anul-Year\n'
+        '05 / 08 / 2026\n'
+        'PANA LA - TO\n'
+        'Ziua-Day / Luna-Month / Anul-Year\n'
+        '05 / 08 / 2027\n'
+        'PH85GLD',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.expiryDate, DateTime(2027, 8, 5));
+    expect(result.licensePlate, 'PH 85 GLD');
+  });
+
+  test('RCA normal validity range chooses later end date', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'RCA asigurare\n'
+        'Valabilitate: 05.08.2026 - 05.08.2027\n'
+        'PH85GLD',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.expiryDate, DateTime(2027, 8, 5));
+    expect(result.licensePlate, 'PH 85 GLD');
+  });
+
+  test('RCA de la pana la range chooses pana la date', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'Asigurare RCA PH85GLD de la 05/08/2026 pana la 05/08/2027',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.expiryDate, DateTime(2027, 8, 5));
+    expect(result.licensePlate, 'PH 85 GLD');
+  });
+
+  test(
+    'OCR noisy ITP text does not override selected RCA document type',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'ITP mentionat pe pagina, dar documentul este RCA\n'
+          'DE LA - FROM 05 08 2026 PANA LA - TO 05 08 2027\n'
+          'PH85GLD',
+        ),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.suggestedType, DocumentType.rca);
+      expect(result.expiryDate, DateTime(2027, 8, 5));
+    },
+  );
+
+  test('RCA plate PH85GLD normalizes with spaces', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success('RCA PH85GLD pana la 05.08.2027'),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.licensePlate, 'PH 85 GLD');
+  });
 }

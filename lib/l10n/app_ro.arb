@@ -23,6 +23,7 @@
   "captureMissingType": "Nu am putut deschide scanarea. Alege documentul din nou.",
   "galleryImportHelper": "Am importat imaginea. Verifică documentul și completează data expirării.",
   "ocrImportSuccessHelper": "Am găsit câteva date automat. Verifică-le înainte de salvare.",
+  "rcaOcrExpiryHelper": "Am găsit o posibilă dată de expirare. Verific-o înainte de salvare.",
   "ocrImportFailureHelper": "Nu am putut citi automat datele. Completează manual data expirării.",
   "ocrWarning": "OCR-ul poate greși. Datele trebuie verificate de tine.",
   "ocrVerifyManually": "verifică manual",

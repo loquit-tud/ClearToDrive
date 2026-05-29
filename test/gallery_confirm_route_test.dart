@@ -155,4 +155,61 @@ void main() {
 
     await tester.runAsync(() => image.parent.delete(recursive: true));
   });
+
+  testWidgets('confirm route shows RCA-specific OCR expiry helper', (
+    tester,
+  ) async {
+    final image = (await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp('ctd_confirm_rca');
+      final image = File('${dir.path}/rca.jpg');
+      await image.writeAsBytes([0xFF, 0xD8, 0xFF]);
+      return image;
+    }))!;
+
+    final draft = ConfirmDraft(
+      type: DocumentType.rca,
+      licensePlate: 'PH 85 GLD',
+      expiryDate: DateTime(2027, 8, 5),
+      source: DocumentSource.import,
+      imagePath: image.path,
+      assistStatus: DocumentAssistStatus.ocrSuccess,
+      needsManualReview: true,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [confirmDraftProvider.overrideWith((ref) => draft)],
+        child: MaterialApp.router(
+          routerConfig: GoRouter(
+            initialLocation: '/confirm',
+            routes: [
+              GoRoute(
+                path: '/confirm',
+                builder: (_, state) => ConfirmScreen(
+                  initialDraft: state.extra is ConfirmDraft
+                      ? state.extra! as ConfirmDraft
+                      : null,
+                ),
+              ),
+            ],
+          ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('ro'),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+
+    expect(
+      find.text(
+        'Am găsit o posibilă dată de expirare. Verific-o înainte de salvare.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('05.08.2027'), findsOneWidget);
+
+    await tester.runAsync(() => image.parent.delete(recursive: true));
+  });
 }

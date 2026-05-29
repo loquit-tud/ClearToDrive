@@ -103,7 +103,7 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     }
 
     final normalizedText = _normalizeText(rawText);
-    final suggestedType = _detectType(normalizedText);
+    final suggestedType = _detectType(normalizedText, typeHint: typeHint);
     final plate = _extractPlate(rawText);
     final dateChoice = _extractExpiryDate(
       rawText,
@@ -123,7 +123,8 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     );
   }
 
-  DocumentType? _detectType(String normalizedText) {
+  DocumentType? _detectType(String normalizedText, {DocumentType? typeHint}) {
+    if (typeHint != null) return typeHint;
     if (_itpKeywords.any(normalizedText.contains)) {
       return DocumentType.itp;
     }
@@ -235,6 +236,13 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     String normalizedText, {
     required DateTime reference,
   }) {
+    final explicitRangeChoice = _extractExplicitRcaRangeExpiryDate(
+      rawText,
+      normalizedText,
+      reference: reference,
+    );
+    if (explicitRangeChoice != null) return explicitRangeChoice;
+
     final scanText = _rcaValidityScanText(rawText, normalizedText);
     final tokens = _numericTokens(scanText);
     final years = tokens
@@ -350,6 +358,131 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     return choices.first;
   }
 
+  _DateChoice? _extractExplicitRcaRangeExpiryDate(
+    String rawText,
+    String normalizedText, {
+    required DateTime reference,
+  }) {
+    final validityRawText = _rcaValidityRawText(rawText, normalizedText);
+    final validityNormalizedText = _normalizeText(validityRawText);
+    final allDates = _allDatesInText(validityRawText);
+    final hasIncompleteTwoColumnHeader =
+        allDates.length < 2 && _hasRcaStartAndEndLabels(validityNormalizedText);
+    final choices = <_DateChoice>[];
+
+    void addChoice(DateTime? date, int score, double confidence) {
+      if (date == null || date.isBefore(reference)) return;
+      choices.add(
+        _DateChoice(date: date, score: score, confidence: confidence),
+      );
+    }
+
+    final dateSource = r'(\d{1,2}\s*[./-]\s*\d{1,2}\s*[./-]\s*\d{2,4})';
+    final rangePatterns = <RegExp>[
+      RegExp(
+        '(?:de\\s+la|from)\\D{0,50}$dateSource'
+        '\\D{0,80}(?:pana\\s+la|to)\\D{0,50}$dateSource',
+      ),
+      RegExp('$dateSource\\s*(?:-|–|—|pana\\s+la|to)\\s*$dateSource'),
+    ];
+
+    for (final pattern in rangePatterns) {
+      for (final match in pattern.allMatches(validityNormalizedText)) {
+        addChoice(_dateFromLooseDateText(match.group(2)), 340, 0.95);
+      }
+    }
+
+    for (final match in RegExp(
+      r'\b(?:pana\s+la|to)\b',
+    ).allMatches(validityNormalizedText)) {
+      if (match.group(0) == 'to' &&
+          !_isRcaToKeyword(validityNormalizedText, match.start)) {
+        continue;
+      }
+      if (hasIncompleteTwoColumnHeader) continue;
+
+      final safeEnd = (match.start + 220)
+          .clamp(0, validityRawText.length)
+          .toInt();
+      final window = validityRawText.substring(match.start, safeEnd);
+      final tokens = _numericTokens(_normalizeDateScanText(window));
+      addChoice(_greenCardExpiryFromTokens(tokens), 320, 0.93);
+      addChoice(_firstDateInText(window), 300, 0.9);
+    }
+
+    if (allDates.length >= 2) {
+      final futureDates = allDates
+          .where((date) => !date.isBefore(reference))
+          .toList();
+      final usableDates = futureDates.isEmpty ? allDates : futureDates;
+      usableDates.sort((a, b) => b.compareTo(a));
+      addChoice(usableDates.first, 240, 0.82);
+    }
+
+    if (choices.isEmpty) return null;
+    choices.sort((a, b) {
+      final scoreCompare = b.score.compareTo(a.score);
+      if (scoreCompare != 0) return scoreCompare;
+      return b.date.compareTo(a.date);
+    });
+    return choices.first;
+  }
+
+  bool _hasRcaStartAndEndLabels(String text) {
+    final hasStart = text.contains('de la') || text.contains('from');
+    final hasEnd = text.contains('pana la') || RegExp(r'\bto\b').hasMatch(text);
+    return hasStart && hasEnd;
+  }
+
+  bool _isRcaToKeyword(String text, int index) {
+    final start = (index - 80).clamp(0, text.length).toInt();
+    final end = (index + 80).clamp(0, text.length).toInt();
+    final window = text.substring(start, end);
+    return window.contains('pana') ||
+        window.contains('from') ||
+        window.contains('de la') ||
+        window.contains('valid') ||
+        window.contains('ziua') ||
+        window.contains('luna') ||
+        window.contains('anul');
+  }
+
+  DateTime? _greenCardExpiryFromTokens(List<_NumericToken> tokens) {
+    for (var i = 0; i <= tokens.length - 6; i++) {
+      final rowMajor =
+          tokens[i].isDayOrMonth &&
+          tokens[i + 1].isDayOrMonth &&
+          tokens[i + 2].isYear &&
+          tokens[i + 3].isDayOrMonth &&
+          tokens[i + 4].isDayOrMonth &&
+          tokens[i + 5].isYear;
+      if (rowMajor) {
+        return _dateFromParts(
+          day: tokens[i + 3].text,
+          month: tokens[i + 4].text,
+          year: tokens[i + 5].text,
+        );
+      }
+
+      final columnMajor =
+          tokens[i].isDayOrMonth &&
+          tokens[i + 1].isDayOrMonth &&
+          tokens[i + 2].isDayOrMonth &&
+          tokens[i + 3].isDayOrMonth &&
+          tokens[i + 4].isYear &&
+          tokens[i + 5].isYear;
+      if (columnMajor) {
+        return _dateFromParts(
+          day: tokens[i + 1].text,
+          month: tokens[i + 3].text,
+          year: tokens[i + 5].text,
+        );
+      }
+    }
+
+    return _firstDateFromNumericTokens(tokens);
+  }
+
   DateTime? _dateFromMatch(RegExpMatch match) {
     final first = int.tryParse(match.group(1) ?? '');
     final second = int.tryParse(match.group(2) ?? '');
@@ -418,6 +551,81 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     return date;
   }
 
+  DateTime? _dateFromLooseDateText(String? text) {
+    if (text == null) return null;
+    final scanText = _normalizeDateScanText(text);
+    for (final pattern in _datePatterns) {
+      final match = pattern.firstMatch(scanText);
+      if (match == null) continue;
+      final date = _dateFromMatch(match);
+      if (date != null) return date;
+    }
+    return null;
+  }
+
+  DateTime? _firstDateInText(String text) {
+    final scanText = _normalizeDateScanText(text);
+    for (final pattern in _datePatterns) {
+      final match = pattern.firstMatch(scanText);
+      if (match == null) continue;
+      final date = _dateFromMatch(match);
+      if (date != null) return date;
+    }
+    return _firstDateFromNumericTokens(_numericTokens(scanText));
+  }
+
+  DateTime? _firstDateFromNumericTokens(List<_NumericToken> tokens) {
+    for (var i = 2; i < tokens.length; i++) {
+      if (!tokens[i].isYear ||
+          !tokens[i - 2].isDayOrMonth ||
+          !tokens[i - 1].isDayOrMonth) {
+        continue;
+      }
+      final date = _dateFromParts(
+        day: tokens[i - 2].text,
+        month: tokens[i - 1].text,
+        year: tokens[i].text,
+      );
+      if (date != null) return date;
+    }
+    return null;
+  }
+
+  List<DateTime> _allDatesInText(String text) {
+    final dates = <DateTime>[];
+    final seen = <String>{};
+
+    void add(DateTime? date) {
+      if (date == null) return;
+      final key = '${date.year}-${date.month}-${date.day}';
+      if (seen.add(key)) dates.add(date);
+    }
+
+    final scanText = _normalizeDateScanText(text);
+    for (final pattern in _datePatterns) {
+      for (final match in pattern.allMatches(scanText)) {
+        add(_dateFromMatch(match));
+      }
+    }
+
+    final tokens = _numericTokens(scanText);
+    for (var i = 2; i < tokens.length; i++) {
+      if (!tokens[i].isYear ||
+          !tokens[i - 2].isDayOrMonth ||
+          !tokens[i - 1].isDayOrMonth) {
+        continue;
+      }
+      add(
+        _dateFromParts(
+          day: tokens[i - 2].text,
+          month: tokens[i - 1].text,
+          year: tokens[i].text,
+        ),
+      );
+    }
+    return dates;
+  }
+
   int _scoreDateCandidate(
     _DateCandidate candidate,
     String normalizedText,
@@ -481,7 +689,10 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
   }
 
   String _rcaValidityScanText(String rawText, String normalizedText) {
-    final scanText = _normalizeDateScanText(rawText);
+    return _normalizeDateScanText(_rcaValidityRawText(rawText, normalizedText));
+  }
+
+  String _rcaValidityRawText(String rawText, String normalizedText) {
     final start = _firstKeywordIndex(normalizedText, [
       'valabil',
       'valid',
@@ -489,11 +700,11 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
       'from',
       'ziua',
     ]);
-    if (start < 0) return scanText;
+    if (start < 0) return rawText;
 
-    final safeStart = start.clamp(0, scanText.length).toInt();
-    final safeEnd = (safeStart + 600).clamp(0, scanText.length).toInt();
-    return scanText.substring(safeStart, safeEnd);
+    final safeStart = start.clamp(0, rawText.length).toInt();
+    final safeEnd = (safeStart + 600).clamp(0, rawText.length).toInt();
+    return rawText.substring(safeStart, safeEnd);
   }
 
   int _firstKeywordIndex(String text, List<String> keywords) {
