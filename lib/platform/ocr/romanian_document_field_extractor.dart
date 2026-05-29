@@ -7,18 +7,74 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
   const RomanianDocumentFieldExtractor();
 
   static final _datePatterns = <RegExp>[
-    RegExp(r'\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b'),
-    RegExp(r'\b(\d{4})-(\d{1,2})-(\d{1,2})\b'),
+    RegExp(r'\b(\d{1,2})\s*[./,-]\s*(\d{1,2})\s*[./,-]\s*(\d{2,4})\b'),
+    RegExp(r'\b(\d{4})\s*[./,-]\s*(\d{1,2})\s*[./,-]\s*(\d{1,2})\b'),
+    RegExp(r'\b(\d{1,2})\s+(\d{1,2})\s+(\d{2,4})\b'),
+    RegExp(r'\b(\d{4})\s+(\d{1,2})\s+(\d{1,2})\b'),
   ];
+
+  static final _monthNamePattern = RegExp(
+    r'\b(\d{1,2})\s+'
+    r'(ianuarie|ian|februarie|feb|martie|mar|aprilie|apr|mai|iunie|iun|'
+    r'iulie|iul|august|aug|septembrie|sep|octombrie|oct|noiembrie|noi|'
+    r'decembrie|dec)'
+    r'\s+(\d{2,4})\b',
+  );
 
   static final _expiryKeywords = <String>[
     'valabil',
+    'valabilitate',
     'valabil pana',
+    'valabil pana la',
+    'validitate',
+    'pana la',
     'expira',
+    'expirare',
     'data expirarii',
+    'data limita',
+    'termen',
+    'scadenta',
+    'urmatoarea inspectie',
+    'urmatoarei inspectii',
+    'urmatoarea inspectie tehnica',
+    'urmatoarei inspectii tehnice',
+    'urmatorul itp',
+    'urmatoarea itp',
   ];
 
-  static final _itpKeywords = <String>['itp', 'inspectie tehnica'];
+  static final _itpKeywords = <String>[
+    'itp',
+    'i.t.p',
+    'inspectie tehnica',
+    'inspectie tehnica periodica',
+    'inspectiei tehnice',
+  ];
+
+  static final _monthNumbers = <String, int>{
+    'ianuarie': 1,
+    'ian': 1,
+    'februarie': 2,
+    'feb': 2,
+    'martie': 3,
+    'mar': 3,
+    'aprilie': 4,
+    'apr': 4,
+    'mai': 5,
+    'iunie': 6,
+    'iun': 6,
+    'iulie': 7,
+    'iul': 7,
+    'august': 8,
+    'aug': 8,
+    'septembrie': 9,
+    'sep': 9,
+    'octombrie': 10,
+    'oct': 10,
+    'noiembrie': 11,
+    'noi': 11,
+    'decembrie': 12,
+    'dec': 12,
+  };
 
   @override
   Future<ExtractionResult> extractFromText({
@@ -92,12 +148,18 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     DateTime? referenceDate,
   }) {
     final candidates = <_DateCandidate>[];
+    final dateScanText = _normalizeDateScanText(rawText);
     for (final pattern in _datePatterns) {
-      for (final match in pattern.allMatches(rawText)) {
+      for (final match in pattern.allMatches(dateScanText)) {
         final date = _dateFromMatch(match);
         if (date == null) continue;
         candidates.add(_DateCandidate(date: date, index: match.start));
       }
+    }
+    for (final match in _monthNamePattern.allMatches(normalizedText)) {
+      final date = _dateFromMonthNameMatch(match);
+      if (date == null) continue;
+      candidates.add(_DateCandidate(date: date, index: match.start));
     }
 
     if (candidates.isEmpty) return null;
@@ -132,11 +194,32 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     if (first == null || second == null || third == null) return null;
 
     final isYearFirst = (match.group(1) ?? '').length == 4;
-    final year = isYearFirst ? first : third;
+    var year = isYearFirst ? first : third;
+    final rawYear = isYearFirst ? match.group(1) ?? '' : match.group(3) ?? '';
+    if (!isYearFirst && rawYear.length == 2) {
+      year += 2000;
+    }
     final month = second;
     final day = isYearFirst ? third : first;
 
     if (year < 2000 || year > 2100 || month < 1 || month > 12) return null;
+    final date = DateTime(year, month, day);
+    if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
+    return date;
+  }
+
+  DateTime? _dateFromMonthNameMatch(RegExpMatch match) {
+    final day = int.tryParse(match.group(1) ?? '');
+    final month = _monthNumbers[match.group(2) ?? ''];
+    var year = int.tryParse(match.group(3) ?? '');
+    if (day == null || month == null || year == null) return null;
+    if ((match.group(3) ?? '').length == 2) {
+      year += 2000;
+    }
+
+    if (year < 2000 || year > 2100 || day < 1) return null;
     final date = DateTime(year, month, day);
     if (date.year != year || date.month != month || date.day != day) {
       return null;
@@ -188,6 +271,12 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
         .replaceAll('ş', 's')
         .replaceAll('ț', 't')
         .replaceAll('ţ', 't');
+  }
+
+  String _normalizeDateScanText(String input) {
+    return _normalizeText(
+      input,
+    ).replaceAll('o', '0').replaceAll('i', '1').replaceAll('l', '1');
   }
 
   DateTime _dateOnly(DateTime value) =>

@@ -53,4 +53,46 @@ void main() {
 
     expect(result.licensePlate, 'PH 12 ABC');
   });
+
+  test(
+    'ITP expiry tolerates spaced separators and OCR digit mistakes',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'Certificat I.T.P.\n'
+          'B 123 ABC\n'
+          'Data următoarei inspecții tehnice: 29 . O8 . 2026',
+        ),
+        typeHint: DocumentType.itp,
+        referenceDate: referenceDate,
+      );
+
+      expect(result.suggestedType, DocumentType.itp);
+      expect(result.expiryDate, DateTime(2026, 8, 29));
+      expect(result.licensePlate, 'B 123 ABC');
+    },
+  );
+
+  test(
+    'ITP expiry supports whitespace separated and month name dates',
+    () async {
+      final spacedResult = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'Valabilitate ITP pana la 29 08 2026',
+        ),
+        typeHint: DocumentType.itp,
+        referenceDate: referenceDate,
+      );
+      final monthResult = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'Urmatoarea inspectie tehnica 29 august 2026',
+        ),
+        typeHint: DocumentType.itp,
+        referenceDate: referenceDate,
+      );
+
+      expect(spacedResult.expiryDate, DateTime(2026, 8, 29));
+      expect(monthResult.expiryDate, DateTime(2026, 8, 29));
+    },
+  );
 }
