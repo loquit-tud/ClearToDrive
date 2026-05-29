@@ -159,6 +159,15 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     DocumentType? typeHint,
     DateTime? referenceDate,
   }) {
+    final reference = _dateOnly(referenceDate ?? DateTime.now());
+    final rcaGreenCardChoice = _extractRcaGreenCardExpiryDate(
+      rawText,
+      normalizedText,
+      reference: reference,
+      typeHint: typeHint,
+    );
+    if (rcaGreenCardChoice != null) return rcaGreenCardChoice;
+
     final candidates = <_DateCandidate>[];
     final dateScanText = _normalizeDateScanText(rawText);
     for (final pattern in _datePatterns) {
@@ -176,7 +185,6 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
 
     if (candidates.isEmpty) return null;
 
-    final reference = _dateOnly(referenceDate ?? DateTime.now());
     final hasFuture = candidates.any((c) => !c.date.isBefore(reference));
     final usable = hasFuture
         ? candidates.where((c) => !c.date.isBefore(reference)).toList()
@@ -202,6 +210,62 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
       }
     }
     return best;
+  }
+
+  _DateChoice? _extractRcaGreenCardExpiryDate(
+    String rawText,
+    String normalizedText, {
+    required DateTime reference,
+    DocumentType? typeHint,
+  }) {
+    final looksLikeRca =
+        typeHint == DocumentType.rca ||
+        _rcaKeywords.any(normalizedText.contains) ||
+        normalizedText.contains('de la') && normalizedText.contains('pana la');
+    if (!looksLikeRca) return null;
+
+    final scanText = _normalizeDateScanText(rawText);
+
+    final rowMajorMatch = RegExp(
+      r'\b(\d{1,2})\s+(\d{1,2})\s+(\d{4})\s+'
+      r'(\d{1,2})\s+(\d{1,2})\s+(\d{4})\b',
+    ).firstMatch(scanText);
+    final rowMajorExpiry = _dateFromParts(
+      day: rowMajorMatch?.group(4),
+      month: rowMajorMatch?.group(5),
+      year: rowMajorMatch?.group(6),
+    );
+    if (rowMajorExpiry != null && !rowMajorExpiry.isBefore(reference)) {
+      return _DateChoice(date: rowMajorExpiry, score: 180, confidence: 0.9);
+    }
+
+    final columnMajorMatch = RegExp(
+      r'\b(\d{1,2})\s+(\d{1,2})\s+'
+      r'(\d{1,2})\s+(\d{1,2})\s+'
+      r'(\d{4})\s+(\d{4})\b',
+    ).firstMatch(scanText);
+    final columnMajorExpiry = _dateFromParts(
+      day: columnMajorMatch?.group(2),
+      month: columnMajorMatch?.group(4),
+      year: columnMajorMatch?.group(6),
+    );
+    if (columnMajorExpiry != null && !columnMajorExpiry.isBefore(reference)) {
+      return _DateChoice(date: columnMajorExpiry, score: 180, confidence: 0.9);
+    }
+
+    final keywordMatch = RegExp(
+      r'pana\s+la\D{0,40}(\d{1,2})\D+(\d{1,2})\D+(\d{4})',
+    ).firstMatch(scanText);
+    final keywordExpiry = _dateFromParts(
+      day: keywordMatch?.group(1),
+      month: keywordMatch?.group(2),
+      year: keywordMatch?.group(3),
+    );
+    if (keywordExpiry != null && !keywordExpiry.isBefore(reference)) {
+      return _DateChoice(date: keywordExpiry, score: 170, confidence: 0.85);
+    }
+
+    return null;
   }
 
   DateTime? _dateFromMatch(RegExpMatch match) {
@@ -239,6 +303,34 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     if (year < 2000 || year > 2100 || day < 1) return null;
     final date = DateTime(year, month, day);
     if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
+    return date;
+  }
+
+  DateTime? _dateFromParts({
+    required String? day,
+    required String? month,
+    required String? year,
+  }) {
+    final parsedDay = int.tryParse(day ?? '');
+    final parsedMonth = int.tryParse(month ?? '');
+    final parsedYear = int.tryParse(year ?? '');
+    if (parsedDay == null || parsedMonth == null || parsedYear == null) {
+      return null;
+    }
+    if (parsedYear < 2000 ||
+        parsedYear > 2100 ||
+        parsedMonth < 1 ||
+        parsedMonth > 12 ||
+        parsedDay < 1) {
+      return null;
+    }
+
+    final date = DateTime(parsedYear, parsedMonth, parsedDay);
+    if (date.year != parsedYear ||
+        date.month != parsedMonth ||
+        date.day != parsedDay) {
       return null;
     }
     return date;

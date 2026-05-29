@@ -140,4 +140,48 @@ void main() {
       expect(result.licensePlate, 'PH 85 GJD');
     },
   );
+
+  test(
+    'RCA green card keeps Ziua Luna Anul order for ambiguous date',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'CARTE INTERNATIONALA DE ASIGURARE\n'
+          'VALABILITATE - VALID\n'
+          'DE LA - FROM PANA LA - TO\n'
+          'Ziua Luna Anul Ziua Luna Anul\n'
+          '09 05 2026 08 05 2027\n'
+          'PH85GJD',
+        ),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.expiryDate, DateTime(2027, 5, 8));
+      expect(result.expiryDate, isNot(DateTime(2027, 8, 5)));
+    },
+  );
+
+  test(
+    'RCA green card column-major OCR keeps day and month separate',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'CARTE INTERNATIONALA DE ASIGURARE\n'
+          'VALABILITATE - VALID\n'
+          'DE LA - FROM PANA LA - TO\n'
+          'Ziua Luna Anul Ziua Luna Anul\n'
+          '09 08\n'
+          '05 05\n'
+          '2026 2027\n'
+          'PH85GJD',
+        ),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.expiryDate, DateTime(2027, 5, 8));
+      expect(result.expiryDate, isNot(DateTime(2027, 8, 5)));
+    },
+  );
 }
