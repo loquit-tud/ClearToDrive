@@ -160,13 +160,17 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     DateTime? referenceDate,
   }) {
     final reference = _dateOnly(referenceDate ?? DateTime.now());
-    final rcaGreenCardChoice = _extractRcaGreenCardExpiryDate(
-      rawText,
+    final looksLikeRcaGreenCard = _looksLikeRcaGreenCard(
       normalizedText,
-      reference: reference,
       typeHint: typeHint,
     );
-    if (rcaGreenCardChoice != null) return rcaGreenCardChoice;
+    if (looksLikeRcaGreenCard) {
+      return _extractRcaGreenCardExpiryDate(
+        rawText,
+        normalizedText,
+        reference: reference,
+      );
+    }
 
     final candidates = <_DateCandidate>[];
     final dateScanText = _normalizeDateScanText(rawText);
@@ -212,60 +216,127 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     return best;
   }
 
+  bool _looksLikeRcaGreenCard(String normalizedText, {DocumentType? typeHint}) {
+    final looksLikeRca =
+        typeHint == DocumentType.rca ||
+        _rcaKeywords.any(normalizedText.contains);
+    final hasValidityTable =
+        normalizedText.contains('de la') &&
+            normalizedText.contains('pana la') ||
+        normalizedText.contains('from') && normalizedText.contains('to') ||
+        normalizedText.contains('ziua') &&
+            normalizedText.contains('luna') &&
+            normalizedText.contains('anul');
+    return looksLikeRca && hasValidityTable;
+  }
+
   _DateChoice? _extractRcaGreenCardExpiryDate(
     String rawText,
     String normalizedText, {
     required DateTime reference,
-    DocumentType? typeHint,
   }) {
-    final looksLikeRca =
-        typeHint == DocumentType.rca ||
-        _rcaKeywords.any(normalizedText.contains) ||
-        normalizedText.contains('de la') && normalizedText.contains('pana la');
-    if (!looksLikeRca) return null;
+    final scanText = _rcaValidityScanText(rawText, normalizedText);
+    final tokens = _numericTokens(scanText);
+    final years = tokens
+        .where((token) => token.isYear)
+        .map((token) => token.value!)
+        .toList();
+    final latestYear = years.isEmpty
+        ? null
+        : years.reduce((value, element) => value > element ? value : element);
+    final choices = <_DateChoice>[];
 
-    final scanText = _normalizeDateScanText(rawText);
-
-    final rowMajorMatch = RegExp(
-      r'\b(\d{1,2})\s+(\d{1,2})\s+(\d{4})\s+'
-      r'(\d{1,2})\s+(\d{1,2})\s+(\d{4})\b',
-    ).firstMatch(scanText);
-    final rowMajorExpiry = _dateFromParts(
-      day: rowMajorMatch?.group(4),
-      month: rowMajorMatch?.group(5),
-      year: rowMajorMatch?.group(6),
-    );
-    if (rowMajorExpiry != null && !rowMajorExpiry.isBefore(reference)) {
-      return _DateChoice(date: rowMajorExpiry, score: 180, confidence: 0.9);
+    void addChoice(
+      DateTime? date,
+      int score,
+      double confidence, {
+      bool requireLatestYear = false,
+    }) {
+      if (date == null || date.isBefore(reference)) return;
+      if (requireLatestYear &&
+          (years.length < 2 || latestYear != null && date.year != latestYear)) {
+        return;
+      }
+      choices.add(
+        _DateChoice(date: date, score: score, confidence: confidence),
+      );
     }
 
-    final columnMajorMatch = RegExp(
-      r'\b(\d{1,2})\s+(\d{1,2})\s+'
-      r'(\d{1,2})\s+(\d{1,2})\s+'
-      r'(\d{4})\s+(\d{4})\b',
-    ).firstMatch(scanText);
-    final columnMajorExpiry = _dateFromParts(
-      day: columnMajorMatch?.group(2),
-      month: columnMajorMatch?.group(4),
-      year: columnMajorMatch?.group(6),
-    );
-    if (columnMajorExpiry != null && !columnMajorExpiry.isBefore(reference)) {
-      return _DateChoice(date: columnMajorExpiry, score: 180, confidence: 0.9);
+    for (var i = 0; i <= tokens.length - 6; i++) {
+      final rowMajor =
+          tokens[i].isDayOrMonth &&
+          tokens[i + 1].isDayOrMonth &&
+          tokens[i + 2].isYear &&
+          tokens[i + 3].isDayOrMonth &&
+          tokens[i + 4].isDayOrMonth &&
+          tokens[i + 5].isYear;
+      if (rowMajor) {
+        addChoice(
+          _dateFromParts(
+            day: tokens[i + 3].text,
+            month: tokens[i + 4].text,
+            year: tokens[i + 5].text,
+          ),
+          230,
+          0.95,
+        );
+      }
+
+      final columnMajor =
+          tokens[i].isDayOrMonth &&
+          tokens[i + 1].isDayOrMonth &&
+          tokens[i + 2].isDayOrMonth &&
+          tokens[i + 3].isDayOrMonth &&
+          tokens[i + 4].isYear &&
+          tokens[i + 5].isYear;
+      if (columnMajor) {
+        addChoice(
+          _dateFromParts(
+            day: tokens[i + 1].text,
+            month: tokens[i + 3].text,
+            year: tokens[i + 5].text,
+          ),
+          230,
+          0.95,
+        );
+      }
     }
 
     final keywordMatch = RegExp(
       r'pana\s+la\D{0,40}(\d{1,2})\D+(\d{1,2})\D+(\d{4})',
     ).firstMatch(scanText);
-    final keywordExpiry = _dateFromParts(
-      day: keywordMatch?.group(1),
-      month: keywordMatch?.group(2),
-      year: keywordMatch?.group(3),
+    addChoice(
+      _dateFromParts(
+        day: keywordMatch?.group(1),
+        month: keywordMatch?.group(2),
+        year: keywordMatch?.group(3),
+      ),
+      210,
+      0.9,
+      requireLatestYear: true,
     );
-    if (keywordExpiry != null && !keywordExpiry.isBefore(reference)) {
-      return _DateChoice(date: keywordExpiry, score: 170, confidence: 0.85);
+
+    for (var i = 2; i < tokens.length; i++) {
+      if (!tokens[i].isYear) continue;
+      addChoice(
+        _dateFromParts(
+          day: tokens[i - 2].text,
+          month: tokens[i - 1].text,
+          year: tokens[i].text,
+        ),
+        170,
+        0.75,
+        requireLatestYear: true,
+      );
     }
 
-    return null;
+    if (choices.isEmpty) return null;
+    choices.sort((a, b) {
+      final scoreCompare = b.score.compareTo(a.score);
+      if (scoreCompare != 0) return scoreCompare;
+      return b.date.compareTo(a.date);
+    });
+    return choices.first;
   }
 
   DateTime? _dateFromMatch(RegExpMatch match) {
@@ -396,8 +467,61 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     ).replaceAll('o', '0').replaceAll('i', '1').replaceAll('l', '1');
   }
 
+  String _rcaValidityScanText(String rawText, String normalizedText) {
+    final scanText = _normalizeDateScanText(rawText);
+    final start = _firstKeywordIndex(normalizedText, [
+      'valabil',
+      'valid',
+      'de la',
+      'from',
+      'ziua',
+    ]);
+    if (start < 0) return scanText;
+
+    final safeStart = start.clamp(0, scanText.length).toInt();
+    final safeEnd = (safeStart + 600).clamp(0, scanText.length).toInt();
+    return scanText.substring(safeStart, safeEnd);
+  }
+
+  int _firstKeywordIndex(String text, List<String> keywords) {
+    final indexes =
+        keywords.map(text.indexOf).where((index) => index >= 0).toList()
+          ..sort();
+    if (indexes.isEmpty) return -1;
+    return indexes.first;
+  }
+
+  List<_NumericToken> _numericTokens(String text) {
+    return RegExp(r'\b\d{1,4}\b')
+        .allMatches(text)
+        .map((match) => _NumericToken(match.group(0)!, match.start))
+        .toList();
+  }
+
   DateTime _dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
+}
+
+class _NumericToken {
+  const _NumericToken(this.text, this.index);
+
+  final String text;
+  final int index;
+
+  int? get value => int.tryParse(text);
+
+  bool get isYear {
+    final parsed = value;
+    return text.length == 4 &&
+        parsed != null &&
+        parsed >= 2000 &&
+        parsed <= 2100;
+  }
+
+  bool get isDayOrMonth {
+    final parsed = value;
+    return text.length <= 2 && parsed != null && parsed >= 1 && parsed <= 31;
+  }
 }
 
 class _DateCandidate {

@@ -184,4 +184,22 @@ void main() {
       expect(result.expiryDate, isNot(DateTime(2027, 8, 5)));
     },
   );
+
+  test('RCA green card does not keep a generic start-date fallback', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'CARTE INTERNATIONALA DE ASIGURARE\n'
+        'VALABILITATE - VALID\n'
+        'DE LA - FROM PANA LA - TO\n'
+        'Ziua Luna Anul Ziua Luna Anul\n'
+        '05 08 2026\n'
+        'PH85GJD',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.expiryDate, isNull);
+    expect(result.licensePlate, 'PH 85 GJD');
+  });
 }

@@ -61,7 +61,7 @@ jobs:
           # Flutter sometimes exits after Gradle produced an APK but it can't
           # locate it. We don't fail immediately; we validate by searching.
           flutter build apk --debug --target-platform android-arm64 \
-            --dart-define=BUILD_LABEL=v0.3.3-day-month-fix || true
+            --dart-define=BUILD_LABEL=v0.3.4-rca-token-date-fix || true
 
           echo
           echo "== Search for APKs in workspace =="
