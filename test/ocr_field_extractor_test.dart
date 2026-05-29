@@ -95,4 +95,49 @@ void main() {
       expect(monthResult.expiryDate, DateTime(2026, 8, 29));
     },
   );
+
+  test('RCA green card table extracts PANA LA date and plate', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'CARTE INTERNATIONALA DE ASIGURARE\n'
+        'INTERNATIONAL MOTOR INSURANCE CARD\n'
+        '3. VALABILITATE - VALID\n'
+        'DE LA - FROM PANA LA - TO\n'
+        'Ziua Luna Anul Ziua Luna Anul\n'
+        '09 05 2026 08 05 2027\n'
+        'Nr. inmatriculare PH85GJD',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.suggestedType, DocumentType.rca);
+    expect(result.expiryDate, DateTime(2027, 5, 8));
+    expect(result.licensePlate, 'PH 85 GJD');
+  });
+
+  test(
+    'RCA green card vertical OCR dates prefer the PANA LA future date',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'VALABILITATE - VALID\n'
+          'DE LA - FROM\n'
+          '09\n'
+          '05\n'
+          '2026\n'
+          'PANA LA - TO\n'
+          '08\n'
+          '05\n'
+          '2027\n'
+          'PH85GJD',
+        ),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.expiryDate, DateTime(2027, 5, 8));
+      expect(result.licensePlate, 'PH 85 GJD');
+    },
+  );
 }

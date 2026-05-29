@@ -26,8 +26,10 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     'valabilitate',
     'valabil pana',
     'valabil pana la',
+    'valid',
     'validitate',
     'pana la',
+    'pana la to',
     'expira',
     'expirare',
     'data expirarii',
@@ -40,6 +42,15 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     'urmatoarei inspectii tehnice',
     'urmatorul itp',
     'urmatoarea itp',
+  ];
+
+  static final _rcaKeywords = <String>[
+    'rca',
+    'carte internationala de asigurare',
+    'asigurare',
+    'insurance card',
+    'autovehicul',
+    'autovehicle',
   ];
 
   static final _itpKeywords = <String>[
@@ -97,6 +108,7 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     final dateChoice = _extractExpiryDate(
       rawText,
       normalizedText,
+      typeHint: typeHint,
       referenceDate: referenceDate,
     );
 
@@ -118,8 +130,7 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     if (normalizedText.contains('rovinieta')) {
       return DocumentType.rovinieta;
     }
-    if (normalizedText.contains('rca') ||
-        normalizedText.contains('asigurare')) {
+    if (_rcaKeywords.any(normalizedText.contains)) {
       return DocumentType.rca;
     }
     return null;
@@ -145,6 +156,7 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
   _DateChoice? _extractExpiryDate(
     String rawText,
     String normalizedText, {
+    DocumentType? typeHint,
     DateTime? referenceDate,
   }) {
     final candidates = <_DateCandidate>[];
@@ -172,7 +184,12 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
 
     _DateChoice? best;
     for (final candidate in usable) {
-      final score = _scoreDateCandidate(candidate, normalizedText, reference);
+      final score = _scoreDateCandidate(
+        candidate,
+        normalizedText,
+        reference,
+        typeHint: typeHint,
+      );
       final choice = _DateChoice(
         date: candidate.date,
         score: score,
@@ -230,8 +247,9 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
   int _scoreDateCandidate(
     _DateCandidate candidate,
     String normalizedText,
-    DateTime reference,
-  ) {
+    DateTime reference, {
+    DocumentType? typeHint,
+  }) {
     var score = candidate.date.isBefore(reference) ? -20 : 30;
 
     final windowStart = (candidate.index - 90)
@@ -247,6 +265,13 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     }
     if (_itpKeywords.any(window.contains)) {
       score += 30;
+    }
+    if (_rcaKeywords.any(window.contains)) {
+      score += 30;
+    }
+    if (typeHint == DocumentType.rca &&
+        _rcaKeywords.any(normalizedText.contains)) {
+      score += 20;
     }
     if (_expiryKeywords.any(normalizedText.contains)) {
       score += 10;
