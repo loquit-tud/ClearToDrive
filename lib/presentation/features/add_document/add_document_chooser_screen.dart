@@ -1,6 +1,7 @@
 import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
+import 'package:cleartodrive/presentation/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,36 +15,40 @@ class AddDocumentChooserScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.addDocument)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.whatDocument,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 24),
-            _TypeCard(
-              label: l10n.documentTypeRca,
-              icon: Icons.shield_outlined,
-              onTap: () => _select(context, ref, DocumentType.rca),
-            ),
-            const SizedBox(height: 12),
-            _TypeCard(
-              label: l10n.documentTypeItp,
-              icon: Icons.build_circle_outlined,
-              onTap: () => _select(context, ref, DocumentType.itp),
-            ),
-            const SizedBox(height: 12),
-            _TypeCard(
-              label: l10n.documentTypeRovinieta,
-              icon: Icons.confirmation_num_outlined,
-              subtitle: l10n.rovinietaHint,
-              onTap: () => _select(context, ref, DocumentType.rovinieta),
-            ),
-          ],
-        ),
+      body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        children: [
+          Text(
+            l10n.whatDocument,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Selectează tipul documentului înainte de scanare sau import.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.mutedText),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          _TypeCard(
+            label: l10n.documentTypeRca,
+            icon: Icons.shield_outlined,
+            onTap: () => _select(context, ref, DocumentType.rca),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _TypeCard(
+            label: l10n.documentTypeItp,
+            icon: Icons.car_repair_outlined,
+            onTap: () => _select(context, ref, DocumentType.itp),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _TypeCard(
+            label: l10n.documentTypeRovinieta,
+            icon: Icons.confirmation_num_outlined,
+            subtitle: l10n.rovinietaHint,
+            onTap: () => _select(context, ref, DocumentType.rovinieta),
+          ),
+        ],
       ),
     );
   }
@@ -69,37 +74,46 @@ class _TypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return DecoratedBox(
+      decoration: AppTheme.cardDecoration(),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppTheme.cardRadius,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, size: 32),
-              const SizedBox(width: 16),
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+                child: Icon(icon, color: AppColors.primaryBlue),
+              ),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      label,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
+                    Text(label, style: Theme.of(context).textTheme.titleMedium),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         subtitle!,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.mutedText,
+                          height: 1.35,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              const Icon(Icons.chevron_right, color: AppColors.mutedText),
             ],
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dar
 import 'package:cleartodrive/domain/enums/document_enums.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
+import 'package:cleartodrive/presentation/theme/app_theme.dart';
 import 'package:cleartodrive/presentation/widgets/document_card.dart';
 import 'package:cleartodrive/presentation/widgets/document_image_preview.dart';
 import 'package:cleartodrive/presentation/widgets/document_type_selector.dart';
@@ -163,6 +164,11 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       _imagePath != null &&
       !_imagePath!.startsWith('fake://');
 
+  bool get _hasImagePreview =>
+      _imagePath != null &&
+      _imagePath!.isNotEmpty &&
+      !_imagePath!.startsWith('fake://');
+
   bool get _isOcrImport =>
       _isGalleryImport && _assistStatus != DocumentAssistStatus.none;
 
@@ -240,34 +246,40 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.documentType)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DisclaimerBanner(message: _helperMessage(l10n)),
+            const SizedBox(height: AppSpacing.sm),
+            const ReviewWarningBanner(
+              message: 'Verifică datele înainte de salvare.',
+            ),
             if (_isOcrImport) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 l10n.ocrWarning,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
+                  color: AppColors.danger,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
             if (_isOcrImport) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _OcrRawTextPanel(rawText: _ocrRawText),
             ],
-            const SizedBox(height: 16),
-            DocumentImagePreview(imagePath: _imagePath),
-            if (_imagePath != null && !_imagePath!.startsWith('fake://'))
-              const SizedBox(height: 16),
+            if (_hasImagePreview) ...[
+              const SizedBox(height: AppSpacing.lg),
+              DocumentImagePreview(imagePath: _imagePath),
+            ],
+            const SizedBox(height: AppSpacing.lg),
             DocumentTypeSelector(
               value: _type!,
               enabled: !_saving,
               onChanged: (v) => setState(() => _type = v),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             TextField(
               controller: _plateController,
               decoration: InputDecoration(
@@ -280,10 +292,10 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
               ),
               textCapitalization: TextCapitalization.characters,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             InkWell(
               onTap: _saving ? null : _pickDate,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadii.md),
               child: InputDecorator(
                 decoration: InputDecoration(labelText: l10n.expiryDate),
                 child: Text(
@@ -300,15 +312,15 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
               ),
             ),
             if (_needsManualReview && _expiryDate != null) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 l10n.ocrVerifyManually,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.danger),
               ),
             ],
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.xxl),
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving
@@ -320,7 +332,7 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
                   : Text(l10n.save),
             ),
             if (widget.editDocumentId == null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               OutlinedButton(
                 onPressed: _saving ? null : () => context.pop(),
                 child: Text(l10n.rescan),
@@ -345,11 +357,20 @@ class _OcrRawTextPanel extends StatelessWidget {
     final text = rawText.trim();
 
     return Material(
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-      borderRadius: BorderRadius.circular(12),
+      color: AppColors.background,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppTheme.cardRadius,
+        side: const BorderSide(color: AppColors.border),
+      ),
       child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        childrenPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          0,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
         title: Text(
           l10n.ocrRawTextTitle,
           style: theme.textTheme.bodyMedium?.copyWith(
