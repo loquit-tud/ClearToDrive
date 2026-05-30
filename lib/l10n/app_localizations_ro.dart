@@ -89,8 +89,20 @@ class AppLocalizationsRo extends AppLocalizations {
       'Am găsit o posibilă dată de expirare. Verific-o înainte de salvare.';
 
   @override
+  String get rcaInferredExpiryHelper =>
+      'Am estimat data de expirare din document. Verific-o înainte de salvare.';
+
+  @override
+  String get itpCertificateAnnexHelper =>
+      'Certificatul ITP poate avea data în anexa talonului. Completează manual dacă nu apare.';
+
+  @override
+  String get civNoExpiryHelper =>
+      'CIV nu conține data expirării RCA sau ITP. Completează manual sau importă documentul corect.';
+
+  @override
   String get ocrImportFailureHelper =>
-      'Nu am putut citi automat datele. Completează manual data expirării.';
+      'Nu am putut citi automat datele. Completează manual.';
 
   @override
   String get ocrWarning =>

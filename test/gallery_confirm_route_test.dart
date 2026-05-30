@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
+import 'package:cleartodrive/domain/ocr/document_template.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/features/confirm/confirm_screen.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';
@@ -204,9 +205,78 @@ void main() {
 
     expect(
       find.text(
-        'Am găsit o posibilă dată de expirare. Verific-o înainte de salvare.',
+        'Am găsit câteva date automat. Verifică-le înainte de salvare.',
       ),
       findsOneWidget,
+    );
+    expect(find.text('05.08.2027'), findsOneWidget);
+
+    await tester.runAsync(() => image.parent.delete(recursive: true));
+  });
+
+  testWidgets('confirm route shows inferred RCA expiry warning', (
+    tester,
+  ) async {
+    final image = (await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp('ctd_confirm_inferred');
+      final image = File('${dir.path}/rca.jpg');
+      await image.writeAsBytes([0xFF, 0xD8, 0xFF]);
+      return image;
+    }))!;
+
+    final draft = ConfirmDraft(
+      type: DocumentType.rca,
+      licensePlate: 'PH 85 GLD',
+      expiryDate: DateTime(2027, 8, 5),
+      source: DocumentSource.import,
+      imagePath: image.path,
+      assistStatus: DocumentAssistStatus.ocrSuccess,
+      needsManualReview: true,
+      expirySelectionReason: ExtractionReasons.inferredFromGreenCardToYear,
+      ocrDiagnostics: OcrExtractionDiagnostics(
+        detectedTemplate: DocumentTemplate.rcaGreenCard,
+        selectedDocumentType: DocumentType.rca,
+        typeHintPreserved: true,
+        candidateFullDates: [DateTime(2026, 8, 5)],
+        candidateToYears: [2027],
+        selectedExpiryDate: DateTime(2027, 8, 5),
+        selectionReason: ExtractionReasons.inferredFromGreenCardToYear,
+        rawTextPreview: 'PANA LA -TO\n2027',
+      ),
+      helperKey: ExtractionHelperKeys.rcaInferredExpiry,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [confirmDraftProvider.overrideWith((ref) => draft)],
+        child: MaterialApp.router(
+          routerConfig: GoRouter(
+            initialLocation: '/confirm',
+            routes: [
+              GoRoute(
+                path: '/confirm',
+                builder: (_, state) => ConfirmScreen(
+                  initialDraft: state.extra is ConfirmDraft
+                      ? state.extra! as ConfirmDraft
+                      : null,
+                ),
+              ),
+            ],
+          ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('ro'),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+
+    expect(
+      find.text(
+        'Am estimat data de expirare din document. Verific-o înainte de salvare.',
+      ),
+      findsWidgets,
     );
     expect(find.text('05.08.2027'), findsOneWidget);
 

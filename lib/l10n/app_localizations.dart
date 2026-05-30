@@ -242,10 +242,28 @@ abstract class AppLocalizations {
   /// **'I found a possible expiry date. Check it before saving.'**
   String get rcaOcrExpiryHelper;
 
+  /// No description provided for @rcaInferredExpiryHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'We estimated the expiry date from the document. Check it before saving.'**
+  String get rcaInferredExpiryHelper;
+
+  /// No description provided for @itpCertificateAnnexHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'The ITP certificate may list the date on the registration annex. Enter it manually if it is missing.'**
+  String get itpCertificateAnnexHelper;
+
+  /// No description provided for @civNoExpiryHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'The CIV does not contain RCA or ITP expiry dates. Enter manually or import the correct document.'**
+  String get civNoExpiryHelper;
+
   /// No description provided for @ocrImportFailureHelper.
   ///
   /// In en, this message translates to:
-  /// **'Could not read the data automatically. Enter the expiry date manually.'**
+  /// **'Could not read the data automatically. Enter it manually.'**
   String get ocrImportFailureHelper;
 
   /// No description provided for @ocrWarning.

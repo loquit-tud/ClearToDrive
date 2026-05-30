@@ -6,6 +6,7 @@ import 'package:cleartodrive/presentation/theme/app_theme.dart';
 import 'package:cleartodrive/presentation/widgets/document_card.dart';
 import 'package:cleartodrive/presentation/widgets/document_image_preview.dart';
 import 'package:cleartodrive/presentation/widgets/document_type_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,6 +31,8 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
   String? _documentId;
   String? _vehicleId;
   String _ocrRawText = '';
+  String? _helperKey;
+  OcrExtractionDiagnostics? _ocrDiagnostics;
   DocumentAssistStatus _assistStatus = DocumentAssistStatus.none;
   var _needsManualReview = false;
   var _saving = false;
@@ -90,6 +93,8 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
       _documentId = detail.document.id;
       _vehicleId = detail.document.vehicleId;
       _ocrRawText = '';
+      _helperKey = null;
+      _ocrDiagnostics = null;
       _assistStatus = DocumentAssistStatus.none;
       _needsManualReview = false;
       _loadingEdit = false;
@@ -105,6 +110,8 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
     _documentId ??= draft.documentId;
     _vehicleId ??= draft.vehicleId;
     _ocrRawText = draft.ocrRawText.trim();
+    _helperKey = draft.helperKey;
+    _ocrDiagnostics = draft.ocrDiagnostics;
     _assistStatus = draft.assistStatus;
     _needsManualReview = draft.needsManualReview;
   }
@@ -174,10 +181,13 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
 
   String _helperMessage(AppLocalizations l10n) {
     if (_assistStatus == DocumentAssistStatus.ocrSuccess) {
-      if (_type == DocumentType.rca && _expiryDate != null) {
-        return l10n.rcaOcrExpiryHelper;
-      }
-      return l10n.ocrImportSuccessHelper;
+      return switch (_helperKey) {
+        ExtractionHelperKeys.rcaInferredExpiry => l10n.rcaInferredExpiryHelper,
+        ExtractionHelperKeys.itpCertificateAnnex =>
+          l10n.itpCertificateAnnexHelper,
+        ExtractionHelperKeys.civNoExpiry => l10n.civNoExpiryHelper,
+        _ => l10n.ocrImportSuccessHelper,
+      };
     }
     if (_assistStatus == DocumentAssistStatus.ocrNoData) {
       return l10n.ocrImportFailureHelper;
@@ -272,6 +282,10 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
               const SizedBox(height: AppSpacing.sm),
               _OcrRawTextPanel(rawText: _ocrRawText),
             ],
+            if (kDebugMode && _isOcrImport && _ocrDiagnostics != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _OcrDiagnosticsPanel(diagnostics: _ocrDiagnostics!),
+            ],
             if (_hasImagePreview) ...[
               const SizedBox(height: AppSpacing.lg),
               DocumentImagePreview(imagePath: _imagePath),
@@ -317,7 +331,9 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
             if (_needsManualReview && _expiryDate != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(
-                l10n.ocrVerifyManually,
+                _helperKey == ExtractionHelperKeys.rcaInferredExpiry
+                    ? l10n.rcaInferredExpiryHelper
+                    : l10n.ocrVerifyManually,
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.danger),
@@ -343,6 +359,128 @@ class _ConfirmScreenState extends ConsumerState<ConfirmScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OcrDiagnosticsPanel extends StatelessWidget {
+  const _OcrDiagnosticsPanel({required this.diagnostics});
+
+  final OcrExtractionDiagnostics diagnostics;
+
+  String _formatDate(DateTime date) =>
+      DateFormat('yyyy-MM-dd').format(date);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: AppColors.background,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppTheme.cardRadius,
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        childrenPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          0,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        title: Text(
+          'OCR diagnostics (debug)',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        children: [
+          _DiagnosticRow(
+            label: 'Detected template',
+            value: diagnostics.detectedTemplate?.id ?? '—',
+          ),
+          _DiagnosticRow(
+            label: 'Selected type',
+            value: diagnostics.selectedDocumentType?.name ?? '—',
+          ),
+          _DiagnosticRow(
+            label: 'Type hint preserved',
+            value: diagnostics.typeHintPreserved?.toString() ?? '—',
+          ),
+          _DiagnosticRow(
+            label: 'Candidate full dates',
+            value: diagnostics.candidateFullDates.isEmpty
+                ? '—'
+                : diagnostics.candidateFullDates.map(_formatDate).join(', '),
+          ),
+          _DiagnosticRow(
+            label: 'TO years near PANA LA',
+            value: diagnostics.candidateToYears.isEmpty
+                ? '—'
+                : diagnostics.candidateToYears.join(', '),
+          ),
+          _DiagnosticRow(
+            label: 'Selected expiry',
+            value: diagnostics.selectedExpiryDate == null
+                ? '—'
+                : _formatDate(diagnostics.selectedExpiryDate!),
+          ),
+          _DiagnosticRow(
+            label: 'Selection reason',
+            value: diagnostics.selectionReason ?? '—',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SelectableText(
+              diagnostics.rawTextPreview.isEmpty
+                  ? '—'
+                  : diagnostics.rawTextPreview,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiagnosticRow extends StatelessWidget {
+  const _DiagnosticRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

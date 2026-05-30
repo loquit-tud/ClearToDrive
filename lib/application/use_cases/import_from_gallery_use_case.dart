@@ -21,12 +21,24 @@ class ImportFromGalleryUseCase {
     }
 
     final ocrText = await _ocrService.recognizeText(imagePath);
+    if (!ocrText.succeeded) {
+      return ConfirmDraft(
+        type: typeHint,
+        licensePlate: '',
+        source: DocumentSource.import,
+        imagePath: imagePath,
+        assistStatus: DocumentAssistStatus.ocrNoData,
+        needsManualReview: true,
+        ocrRawText: ocrText.text,
+      );
+    }
+
     final extraction = await _extractor.extractFromText(
       ocrText: ocrText,
       typeHint: typeHint,
     );
     final hasUsefulSuggestions =
-        extraction.licensePlate != null || extraction.expiryDate != null;
+        extraction.hasUsefulData || extraction.helperKey != null;
 
     return ConfirmDraft(
       type: typeHint,
@@ -39,6 +51,11 @@ class ImportFromGalleryUseCase {
           : DocumentAssistStatus.ocrNoData,
       needsManualReview: extraction.needsManualReview,
       ocrRawText: extraction.rawText,
+      expirySelectionReason: extraction.expirySelectionReason,
+      ocrDiagnostics: extraction.diagnostics,
+      helperKey: extraction.helperKey,
+      detectedTemplate: extraction.detectedTemplate,
+      typeHintPreserved: extraction.typeHintPreserved,
     );
   }
 }

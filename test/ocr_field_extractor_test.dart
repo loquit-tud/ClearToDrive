@@ -1,5 +1,6 @@
 import 'package:cleartodrive/core/validators/license_plate_validator.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
+import 'package:cleartodrive/domain/ocr/document_template.dart';
 import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/platform/ocr/romanian_document_field_extractor.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -318,5 +319,70 @@ void main() {
     );
 
     expect(result.licensePlate, 'PH 85 GLD');
+  });
+
+  const qaFragmentedGreenCardText =
+      'DE LA- FROM\n'
+      'Ani-Year\n'
+      '2026 08\n'
+      '05\n'
+      'PH85GLD\n'
+      'RCA\n'
+      'PANA LA -TO\n'
+      'Luna-Month Anil-Year\n'
+      '05\n'
+      'ITP\n'
+      '2027\n'
+      '05.08.2026';
+
+  test(
+    'QA fragmented Green Card infers expiry from TO year near PANA LA',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(qaFragmentedGreenCardText),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.suggestedType, DocumentType.rca);
+      expect(result.licensePlate, 'PH 85 GLD');
+      expect(result.expiryDate, DateTime(2027, 8, 5));
+      expect(result.expirySelectionReason, ExtractionReasons.inferredFromGreenCardToYear);
+      expect(result.expiryDateInferred, isTrue);
+      expect(result.needsManualReview, isTrue);
+      expect(result.diagnostics?.candidateToYears, contains(2027));
+    },
+  );
+
+  test('RCA fragmented Green Card without TO year does not infer expiry', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'DE LA - FROM\n'
+        '05 08 2026\n'
+        'PANA LA - TO\n'
+        '05\n'
+        'PH85GLD',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.expiryDate, isNull);
+    expect(result.expirySelectionReason, isNull);
+  });
+
+  test('RCA normal range reports explicit range reason', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'RCA asigurare\n'
+        'Valabilitate: 05.08.2026 - 05.08.2027\n'
+        'PH85GLD',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.expiryDate, DateTime(2027, 8, 5));
+    expect(result.expirySelectionReason, isNot(ExtractionReasons.inferredFromGreenCardToYear));
   });
 }

@@ -89,8 +89,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'I found a possible expiry date. Check it before saving.';
 
   @override
+  String get rcaInferredExpiryHelper =>
+      'We estimated the expiry date from the document. Check it before saving.';
+
+  @override
+  String get itpCertificateAnnexHelper =>
+      'The ITP certificate may list the date on the registration annex. Enter it manually if it is missing.';
+
+  @override
+  String get civNoExpiryHelper =>
+      'The CIV does not contain RCA or ITP expiry dates. Enter manually or import the correct document.';
+
+  @override
   String get ocrImportFailureHelper =>
-      'Could not read the data automatically. Enter the expiry date manually.';
+      'Could not read the data automatically. Enter it manually.';
 
   @override
   String get ocrWarning =>

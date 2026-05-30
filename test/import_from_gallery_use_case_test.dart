@@ -1,6 +1,7 @@
 import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.dart';
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
+import 'package:cleartodrive/domain/ocr/document_template.dart';
 import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/platform/ocr/romanian_document_field_extractor.dart';
@@ -81,6 +82,43 @@ void main() {
       expect(draft.licensePlate, 'PH 85 GLD');
       expect(draft.expiryDate, DateTime(2027, 8, 5));
       expect(draft.assistStatus, DocumentAssistStatus.ocrSuccess);
+    },
+  );
+
+  test(
+    'gallery import infers RCA expiry from fragmented Green Card OCR',
+    () async {
+      const path = '/data/imported/rca-fragmented.jpg';
+      final ocr = _MockOcrService(
+        const OcrTextResult.success(
+          'DE LA- FROM\n'
+          'Ani-Year\n'
+          '2026 08\n'
+          '05\n'
+          'PH85GLD\n'
+          'RCA\n'
+          'PANA LA -TO\n'
+          'Luna-Month Anil-Year\n'
+          '05\n'
+          'ITP\n'
+          '2027\n'
+          '05.08.2026',
+        ),
+      );
+      final useCase = ImportFromGalleryUseCase(
+        _MockScanner(onPick: () async => const ScanResult(imagePaths: [path])),
+        ocr,
+        const RomanianDocumentFieldExtractor(),
+      );
+
+      final draft = await useCase.execute(typeHint: DocumentType.rca);
+
+      expect(draft.type, DocumentType.rca);
+      expect(draft.licensePlate, 'PH 85 GLD');
+      expect(draft.expiryDate, DateTime(2027, 8, 5));
+      expect(draft.expirySelectionReason, ExtractionReasons.inferredFromGreenCardToYear);
+      expect(draft.ocrDiagnostics?.selectionReason,
+          ExtractionReasons.inferredFromGreenCardToYear);
     },
   );
 

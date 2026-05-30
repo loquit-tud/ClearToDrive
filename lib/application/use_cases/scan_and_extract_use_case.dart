@@ -1,7 +1,12 @@
 import 'package:cleartodrive/domain/enums/document_enums.dart';
+import 'package:cleartodrive/domain/ocr/document_template.dart';
 import 'package:cleartodrive/domain/services/document_field_extractor.dart';
 import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
+
+export 'package:cleartodrive/domain/ocr/document_template.dart';
+export 'package:cleartodrive/domain/services/document_field_extractor.dart'
+    show OcrExtractionDiagnostics;
 
 enum DocumentAssistStatus { none, ocrSuccess, ocrNoData }
 
@@ -17,6 +22,11 @@ class ConfirmDraft {
     this.assistStatus = DocumentAssistStatus.none,
     this.needsManualReview = false,
     this.ocrRawText = '',
+    this.expirySelectionReason,
+    this.ocrDiagnostics,
+    this.helperKey,
+    this.detectedTemplate,
+    this.typeHintPreserved,
   });
 
   final DocumentType type;
@@ -29,6 +39,14 @@ class ConfirmDraft {
   final DocumentAssistStatus assistStatus;
   final bool needsManualReview;
   final String ocrRawText;
+  final String? expirySelectionReason;
+  final OcrExtractionDiagnostics? ocrDiagnostics;
+  final String? helperKey;
+  final DocumentTemplate? detectedTemplate;
+  final bool? typeHintPreserved;
+
+  bool get expiryDateInferred =>
+      expirySelectionReason == ExtractionReasons.inferredFromGreenCardToYear;
 
   ConfirmDraft copyWith({
     DocumentType? type,
@@ -41,6 +59,11 @@ class ConfirmDraft {
     DocumentAssistStatus? assistStatus,
     bool? needsManualReview,
     String? ocrRawText,
+    String? expirySelectionReason,
+    OcrExtractionDiagnostics? ocrDiagnostics,
+    String? helperKey,
+    DocumentTemplate? detectedTemplate,
+    bool? typeHintPreserved,
   }) {
     return ConfirmDraft(
       type: type ?? this.type,
@@ -53,6 +76,11 @@ class ConfirmDraft {
       assistStatus: assistStatus ?? this.assistStatus,
       needsManualReview: needsManualReview ?? this.needsManualReview,
       ocrRawText: ocrRawText ?? this.ocrRawText,
+      expirySelectionReason: expirySelectionReason ?? this.expirySelectionReason,
+      ocrDiagnostics: ocrDiagnostics ?? this.ocrDiagnostics,
+      helperKey: helperKey ?? this.helperKey,
+      detectedTemplate: detectedTemplate ?? this.detectedTemplate,
+      typeHintPreserved: typeHintPreserved ?? this.typeHintPreserved,
     );
   }
 }

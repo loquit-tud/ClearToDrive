@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -28,9 +29,41 @@ class MlKitDocumentOcrService implements DocumentOcrService {
       if (text.isEmpty) {
         return const OcrTextResult.failure('No text found.');
       }
-      return OcrTextResult.success(text);
+
+      final blocks = <OcrTextBlock>[];
+      final lines = <OcrTextLine>[];
+      for (final block in recognized.blocks) {
+        final blockLines = <OcrTextLine>[];
+        for (final line in block.lines) {
+          final ocrLine = OcrTextLine(
+            text: line.text,
+            boundingBox: _boxFromRect(line.boundingBox),
+          );
+          blockLines.add(ocrLine);
+          lines.add(ocrLine);
+        }
+        blocks.add(
+          OcrTextBlock(
+            text: block.text,
+            lines: blockLines,
+            boundingBox: _boxFromRect(block.boundingBox),
+          ),
+        );
+      }
+
+      return OcrTextResult.success(text, blocks: blocks, lines: lines);
     } catch (e) {
       return OcrTextResult.failure(e.toString());
     }
+  }
+
+  OcrTextBoundingBox? _boxFromRect(Rect rect) {
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    return OcrTextBoundingBox(
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+    );
   }
 }
