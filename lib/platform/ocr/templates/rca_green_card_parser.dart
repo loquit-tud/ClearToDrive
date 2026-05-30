@@ -450,6 +450,11 @@ abstract final class RcaGreenCardParser {
     String normalizedText,
   ) {
     final years = <int>{};
+    // Real OCR scatters the TO year far below the PANA LA / TO label (often
+    // separated by a full validity paragraph), so scan from the earliest
+    // PANA LA / TO label to the end of the document. Safety is enforced later
+    // by restricting the inferred TO year to FROM..FROM+2 (strictly later).
+    var earliest = -1;
     for (final match in RegExp(r'\b(?:pana\s*la|to)\b').allMatches(
       normalizedText,
     )) {
@@ -457,14 +462,16 @@ abstract final class RcaGreenCardParser {
           !_isRcaToKeyword(normalizedText, match.start)) {
         continue;
       }
-      final windowStart = match.start.clamp(0, text.length).toInt();
-      final windowEnd = (match.start + 220).clamp(0, text.length).toInt();
-      final window = TextNormalizer.normalizeForDateScan(
-        text.substring(windowStart, windowEnd),
-      );
-      for (final token in DateParser.numericTokens(window)) {
-        if (token.isYear && token.value != null) years.add(token.value!);
-      }
+      if (earliest < 0 || match.start < earliest) earliest = match.start;
+    }
+    if (earliest < 0) return years.toList()..sort();
+
+    final windowStart = earliest.clamp(0, text.length).toInt();
+    final window = TextNormalizer.normalizeForDateScan(
+      text.substring(windowStart),
+    );
+    for (final token in DateParser.numericTokens(window)) {
+      if (token.isYear && token.value != null) years.add(token.value!);
     }
     return years.toList()..sort();
   }

@@ -135,6 +135,59 @@ BMW''';
       expect(result.diagnostics?.detectedToYear, 2027);
     });
 
+    test('real OCR with TO year far below PANA LA still infers expiry', () async {
+      const realOcr = r'''BAN
+1. GARTE INTERNAȚIONALĂ DE ASIGURARE
+PENTRU AUTOVEHICUL
+1. INTERNAT:ONAL MoTOR INSURANCE CARD
+1. CARTE INTERNATIONALE D'ASSURANCE
+AUTOMOBILE
+Ziua-Day
+09
+DE LA. FROM
+Luna
+Month
+05
+3, VALABILITATE VALID
+Anul-Year Ziua-
+2026
+08 05
+(Aceste douà date incusiv Both dates inclusive)
+PH85GLD
+PANÄ LA-TO
+Luna-Month Anul-Year.
+Această carte este valabila în tarile in care casuta corespunzätoare de mai jos nu este barată (pentru mai mute
+informati, vẫ rugam sã accesati ww.CoÞX.Ora ).
+in fiecare tarā vizitatá, Biroul acelei tari garantează acoperirea prin asigurare pentru prejudiciul cauzat prin
+utizarea vehicslului menționat mai sus, in conformitate cu legea din acea țarā privind asigurarea obigatorie.
+Pentru identificarea Biroului relevant. vá rugảm sả verificați verso-ul cārti.
+PAMA ASIGURĂRI S.A
+IRL
+2027
+2. EMISĂ SUB AUTORITATEA:
+BIROUL ASIGURÄTOPILOR DE
+AUTOVEHICULE DIN ROMANIA
+(B.AARJ
+ROI19/A19/PD
+031332814
+BMW''';
+
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(realOcr),
+        typeHint: DocumentType.rca,
+        referenceDate: referenceDate,
+      );
+
+      expect(result.suggestedType, DocumentType.rca);
+      expect(result.detectedTemplate, DocumentTemplate.rcaGreenCard);
+      expect(result.licensePlate, 'PH 85 GLD');
+      expect(result.expiryDate, DateTime(2027, 8, 5));
+      expect(
+        result.expirySelectionReason,
+        ExtractionReasons.greenCardToYearWithFromDayMonth,
+      );
+    });
+
     test('noisy ITP in OCR keeps selected RCA type', () async {
       final result = await extractor.extractFromText(
         ocrText: const OcrTextResult.success(
