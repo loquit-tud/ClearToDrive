@@ -8,10 +8,13 @@ import 'package:cleartodrive/platform/ocr/parsing/text_normalizer.dart';
 /// BAAR Carte Verde / International Motor Insurance Card field 3 validity parser.
 abstract final class RcaGreenCardParser {
   static TemplateParseResult parse(OcrExtractionContext ctx) {
-    final startDate = _findFullStartDateNearDeLa(
+    final tableDates = _findExplicitGreenCardTableDates(
       ctx.correctedText,
       ctx.normalizedText,
     );
+    final startDate =
+        tableDates?.from ??
+        _findFullStartDateNearDeLa(ctx.correctedText, ctx.normalizedText);
     final toYears = _findYearsNearPanaLa(ctx.correctedText, ctx.normalizedText);
     final choice = _extractExpiry(ctx);
 
@@ -20,9 +23,9 @@ abstract final class RcaGreenCardParser {
       licensePlate: PlateExtractor.extract(ctx.correctedText),
       confidence: choice?.confidence,
       expirySelectionReason: choice?.reason,
-      candidateFullDates: DateParser.allDatesInText(ctx.correctedText)
-          .where((d) => !_isMisalignedGreenCardTokenDate(d, startDate))
-          .toList(),
+      candidateFullDates: DateParser.allDatesInText(
+        ctx.correctedText,
+      ).where((d) => !_isMisalignedGreenCardTokenDate(d, startDate)).toList(),
       candidateToYears: toYears,
       detectedFromDate: startDate,
       detectedToYear: _selectToYearForInference(startDate, toYears),
@@ -44,31 +47,47 @@ abstract final class RcaGreenCardParser {
         )
         .toList();
     if (valid.isEmpty) return null;
-    return valid.reduce((a, b) => a > b ? a : b);
+    // Years are collected in reading order from the PANA LA / TO area onward.
+    // Prefer the nearest valid TO year instead of the maximum year, because
+    // real OCR often includes unrelated footer/batch years after the validity
+    // area.
+    return valid.first;
   }
 
   static DateChoice? _extractExpiry(OcrExtractionContext ctx) {
     final reference = ctx.referenceDate;
-    final explicit = _extractExplicitRange(ctx, reference);
-    if (explicit != null) return explicit;
-
-    final startDate = _findFullStartDateNearDeLa(
+    final tableDates = _findExplicitGreenCardTableDates(
       ctx.correctedText,
       ctx.normalizedText,
     );
-    final lacksFullTo = startDate != null &&
+    if (tableDates?.to != null && !tableDates!.to.isBefore(reference)) {
+      return DateChoice(
+        date: tableDates.to,
+        score: 360,
+        confidence: 0.96,
+        reason: 'green_card_to_day_month_year',
+      );
+    }
+
+    final explicit = _extractExplicitRange(ctx, reference);
+    if (explicit != null) return explicit;
+
+    final startDate =
+        tableDates?.from ??
+        _findFullStartDateNearDeLa(ctx.correctedText, ctx.normalizedText);
+    final lacksFullTo =
+        startDate != null &&
         _hasStartAndEndLabels(ctx.normalizedText) &&
-        !_hasFullToExpiryDate(
-          ctx.correctedText,
-          ctx.normalizedText,
-          startDate,
-        );
+        !_hasFullToExpiryDate(ctx.correctedText, ctx.normalizedText, startDate);
 
     if (lacksFullTo) {
       return _inferFromToYear(ctx, reference, startDate);
     }
 
-    final scanText = _rcaValidityScanText(ctx.correctedText, ctx.normalizedText);
+    final scanText = _rcaValidityScanText(
+      ctx.correctedText,
+      ctx.normalizedText,
+    );
     final tokens = DateParser.numericTokens(scanText);
     final years = tokens.where((t) => t.isYear).map((t) => t.value!).toList();
     final latestYear = years.isEmpty
@@ -236,18 +255,22 @@ abstract final class RcaGreenCardParser {
     OcrExtractionContext ctx,
     DateTime reference,
   ) {
-    final validityRaw = _rcaValidityRawText(ctx.correctedText, ctx.normalizedText);
+    final validityRaw = _rcaValidityRawText(
+      ctx.correctedText,
+      ctx.normalizedText,
+    );
     final validityNorm = TextNormalizer.normalize(validityRaw);
     final startDate = _findFullStartDateNearDeLa(
       ctx.correctedText,
       ctx.normalizedText,
     );
-    final lacksFullTo = startDate != null &&
+    final lacksFullTo =
+        startDate != null &&
         _hasStartAndEndLabels(validityNorm) &&
         !_hasFullToExpiryDate(ctx.correctedText, ctx.normalizedText, startDate);
-    final allDates = DateParser.allDatesInText(validityRaw)
-        .where((d) => !_isMisalignedGreenCardTokenDate(d, startDate))
-        .toList();
+    final allDates = DateParser.allDatesInText(
+      validityRaw,
+    ).where((d) => !_isMisalignedGreenCardTokenDate(d, startDate)).toList();
     final choices = <DateChoice>[];
 
     void add(DateTime? date, int score, double confidence, {String? reason}) {
@@ -278,12 +301,16 @@ abstract final class RcaGreenCardParser {
     }
 
     if (!lacksFullTo) {
-      for (final match in RegExp(r'\b(?:pana\s*la|to)\b').allMatches(validityNorm)) {
+      for (final match in RegExp(
+        r'\b(?:pana\s*la|to)\b',
+      ).allMatches(validityNorm)) {
         if (match.group(0) == 'to' &&
             !_isRcaToKeyword(validityNorm, match.start)) {
           continue;
         }
-        final safeEnd = (match.start + 220).clamp(0, validityRaw.length).toInt();
+        final safeEnd = (match.start + 220)
+            .clamp(0, validityRaw.length)
+            .toInt();
         final window = validityRaw.substring(match.start, safeEnd);
         final tokens = DateParser.numericTokens(
           TextNormalizer.normalizeForDateScan(window),
@@ -311,6 +338,65 @@ abstract final class RcaGreenCardParser {
       return null;
     }
     return best;
+  }
+
+  static _GreenCardTableDates? _findExplicitGreenCardTableDates(
+    String rawText,
+    String normalizedText,
+  ) {
+    if (!_hasStartAndEndLabels(normalizedText)) return null;
+
+    final tokens = DateParser.numericTokens(
+      _rcaValidityScanText(rawText, normalizedText),
+    );
+    for (var i = 0; i <= tokens.length - 6; i++) {
+      final rowMajor =
+          tokens[i].isDayOrMonth &&
+          tokens[i + 1].isDayOrMonth &&
+          tokens[i + 2].isYear &&
+          tokens[i + 3].isDayOrMonth &&
+          tokens[i + 4].isDayOrMonth &&
+          tokens[i + 5].isYear;
+      if (rowMajor) {
+        final from = DateParser.dateFromParts(
+          day: tokens[i].text,
+          month: tokens[i + 1].text,
+          year: tokens[i + 2].text,
+        );
+        final to = DateParser.dateFromParts(
+          day: tokens[i + 3].text,
+          month: tokens[i + 4].text,
+          year: tokens[i + 5].text,
+        );
+        if (from != null && to != null && to.isAfter(from)) {
+          return _GreenCardTableDates(from: from, to: to);
+        }
+      }
+
+      final columnMajor =
+          tokens[i].isDayOrMonth &&
+          tokens[i + 1].isDayOrMonth &&
+          tokens[i + 2].isDayOrMonth &&
+          tokens[i + 3].isDayOrMonth &&
+          tokens[i + 4].isYear &&
+          tokens[i + 5].isYear;
+      if (columnMajor) {
+        final from = DateParser.dateFromParts(
+          day: tokens[i].text,
+          month: tokens[i + 2].text,
+          year: tokens[i + 4].text,
+        );
+        final to = DateParser.dateFromParts(
+          day: tokens[i + 1].text,
+          month: tokens[i + 3].text,
+          year: tokens[i + 5].text,
+        );
+        if (from != null && to != null && to.isAfter(from)) {
+          return _GreenCardTableDates(from: from, to: to);
+        }
+      }
+    }
+    return null;
   }
 
   static DateTime? _structuredDateFromTokens(List<NumericToken> tokens) {
@@ -445,19 +531,16 @@ abstract final class RcaGreenCardParser {
     return null;
   }
 
-  static List<int> _findYearsNearPanaLa(
-    String text,
-    String normalizedText,
-  ) {
+  static List<int> _findYearsNearPanaLa(String text, String normalizedText) {
     final years = <int>{};
     // Real OCR scatters the TO year far below the PANA LA / TO label (often
     // separated by a full validity paragraph), so scan from the earliest
     // PANA LA / TO label to the end of the document. Safety is enforced later
     // by restricting the inferred TO year to FROM..FROM+2 (strictly later).
     var earliest = -1;
-    for (final match in RegExp(r'\b(?:pana\s*la|to)\b').allMatches(
-      normalizedText,
-    )) {
+    for (final match in RegExp(
+      r'\b(?:pana\s*la|to)\b',
+    ).allMatches(normalizedText)) {
       if (match.group(0) == 'to' &&
           !_isRcaToKeyword(normalizedText, match.start)) {
         continue;
@@ -481,9 +564,9 @@ abstract final class RcaGreenCardParser {
     String normalizedText,
     DateTime startDate,
   ) {
-    for (final match in RegExp(r'\b(?:pana\s*la|to)\b').allMatches(
-      normalizedText,
-    )) {
+    for (final match in RegExp(
+      r'\b(?:pana\s*la|to)\b',
+    ).allMatches(normalizedText)) {
       if (match.group(0) == 'to' &&
           !_isRcaToKeyword(normalizedText, match.start)) {
         continue;
@@ -511,4 +594,11 @@ abstract final class RcaGreenCardParser {
     }
     return false;
   }
+}
+
+class _GreenCardTableDates {
+  const _GreenCardTableDates({required this.from, required this.to});
+
+  final DateTime from;
+  final DateTime to;
 }

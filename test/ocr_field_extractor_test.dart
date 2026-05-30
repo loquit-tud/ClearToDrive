@@ -4,6 +4,7 @@ import 'package:cleartodrive/domain/ocr/document_template.dart';
 import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/platform/ocr/romanian_document_field_extractor.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   final extractor = RomanianDocumentFieldExtractor();
@@ -265,6 +266,23 @@ void main() {
     expect(result.licensePlate, 'PH 85 GLD');
   });
 
+  test('RCA normal dd.MM.yyyy validity range chooses later end date', () async {
+    final result = await extractor.extractFromText(
+      ocrText: const OcrTextResult.success(
+        'RCA asigurare\n'
+        'Valabilitate: 09.05.2026 - 08.05.2027\n'
+        'PH85GLD',
+      ),
+      typeHint: DocumentType.rca,
+      referenceDate: DateTime(2026, 5, 29),
+    );
+
+    expect(result.diagnostics?.selectedDocumentType, DocumentType.rca);
+    expect(result.expiryDate, DateTime(2027, 5, 8));
+    expect(DateFormat('dd.MM.yyyy').format(result.expiryDate!), '08.05.2027');
+    expect(result.licensePlate, 'PH 85 GLD');
+  });
+
   test('RCA normal validity range chooses later end date', () async {
     final result = await extractor.extractFromText(
       ocrText: const OcrTextResult.success(
@@ -311,6 +329,71 @@ void main() {
     },
   );
 
+  test(
+    'real RCA Green Card OCR uses TO day month year table components',
+    () async {
+      const realGreenCardOcr = '''Ziua-Day
+09
+DE LA FROM
+Luna Month
+05
+Anul-Year Ziua-
+2026
+08 05
+PH85GLD
+PANA LA TO
+Luna-Month Anul-Year
+2027
+ITP noise''';
+
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(realGreenCardOcr),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.diagnostics?.selectedDocumentType, DocumentType.rca);
+      expect(result.licensePlate, 'PH 85 GLD');
+      expect(result.diagnostics?.detectedFromDate, DateTime(2026, 5, 9));
+      expect(result.expiryDate, DateTime(2027, 5, 8));
+      expect(DateFormat('dd.MM.yyyy').format(result.expiryDate!), '08.05.2027');
+      expect(result.expirySelectionReason, 'green_card_to_day_month_year');
+    },
+  );
+
+  test(
+    'real RCA Green Card OCR ignores noisy footer year after TO table',
+    () async {
+      const realGreenCardOcr = '''CARTE INTERNATIONALA DE ASIGURARE
+INTERNATIONAL MOTOR INSURANCE CARD
+Ziua-Day
+09
+DE LA FROM
+Luna Month
+05
+Anul-Year Ziua-
+2026
+08 05
+PH85GLD
+PANA LA TO
+Luna-Month Anul-Year
+2027
+Footer scan batch 2028
+BIROUL ASIGURATORILOR DE AUTOVEHICULE DIN ROMANIA''';
+
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(realGreenCardOcr),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
+
+      expect(result.diagnostics?.selectedDocumentType, DocumentType.rca);
+      expect(result.licensePlate, 'PH 85 GLD');
+      expect(result.expiryDate, DateTime(2027, 5, 8));
+      expect(result.expirySelectionReason, 'green_card_to_day_month_year');
+    },
+  );
+
   test('RCA plate PH85GLD normalizes with spaces', () async {
     final result = await extractor.extractFromText(
       ocrText: const OcrTextResult.success('RCA PH85GLD pana la 05.08.2027'),
@@ -347,29 +430,35 @@ void main() {
       expect(result.suggestedType, DocumentType.rca);
       expect(result.licensePlate, 'PH 85 GLD');
       expect(result.expiryDate, DateTime(2027, 8, 5));
-      expect(result.expirySelectionReason, ExtractionReasons.greenCardToYearWithFromDayMonth);
+      expect(
+        result.expirySelectionReason,
+        ExtractionReasons.greenCardToYearWithFromDayMonth,
+      );
       expect(result.expiryDateInferred, isTrue);
       expect(result.needsManualReview, isTrue);
       expect(result.diagnostics?.candidateToYears, contains(2027));
     },
   );
 
-  test('RCA fragmented Green Card without TO year does not infer expiry', () async {
-    final result = await extractor.extractFromText(
-      ocrText: const OcrTextResult.success(
-        'DE LA - FROM\n'
-        '05 08 2026\n'
-        'PANA LA - TO\n'
-        '05\n'
-        'PH85GLD',
-      ),
-      typeHint: DocumentType.rca,
-      referenceDate: DateTime(2026, 5, 29),
-    );
+  test(
+    'RCA fragmented Green Card without TO year does not infer expiry',
+    () async {
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(
+          'DE LA - FROM\n'
+          '05 08 2026\n'
+          'PANA LA - TO\n'
+          '05\n'
+          'PH85GLD',
+        ),
+        typeHint: DocumentType.rca,
+        referenceDate: DateTime(2026, 5, 29),
+      );
 
-    expect(result.expiryDate, isNull);
-    expect(result.expirySelectionReason, isNull);
-  });
+      expect(result.expiryDate, isNull);
+      expect(result.expirySelectionReason, isNull);
+    },
+  );
 
   test('RCA normal range reports explicit range reason', () async {
     final result = await extractor.extractFromText(
@@ -383,6 +472,9 @@ void main() {
     );
 
     expect(result.expiryDate, DateTime(2027, 8, 5));
-    expect(result.expirySelectionReason, isNot(ExtractionReasons.greenCardToYearWithFromDayMonth));
+    expect(
+      result.expirySelectionReason,
+      isNot(ExtractionReasons.greenCardToYearWithFromDayMonth),
+    );
   });
 }
