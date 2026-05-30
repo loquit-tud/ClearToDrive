@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
-import 'package:cleartodrive/domain/ocr/document_template.dart';
 import 'package:cleartodrive/l10n/app_localizations.dart';
 import 'package:cleartodrive/presentation/features/confirm/confirm_screen.dart';
 import 'package:cleartodrive/presentation/providers/app_providers.dart';

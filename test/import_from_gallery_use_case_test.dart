@@ -1,7 +1,6 @@
 import 'package:cleartodrive/application/use_cases/import_from_gallery_use_case.dart';
 import 'package:cleartodrive/application/use_cases/scan_and_extract_use_case.dart';
 import 'package:cleartodrive/domain/enums/document_enums.dart';
-import 'package:cleartodrive/domain/ocr/document_template.dart';
 import 'package:cleartodrive/domain/services/document_ocr_service.dart';
 import 'package:cleartodrive/domain/services/document_scanner_service.dart';
 import 'package:cleartodrive/platform/ocr/romanian_document_field_extractor.dart';
