@@ -105,12 +105,17 @@ abstract final class DocumentTemplateDetector {
     if (TextNormalizer.containsAny(text, [
       'carte internationala de asigurare',
       'international motor insurance card',
+      'carte internationale d\'assurance',
+      'carte internationale d assurance',
       'carte verde',
+      'valabilitate valid',
+      'biroul asiguratorilor',
+      'baar',
     ])) {
       return true;
     }
     return (text.contains('de la') && text.contains('pana la')) ||
-        (text.contains('from') && text.contains('to')) ||
+        (text.contains('from') && RegExp(r'\bto\b').hasMatch(text)) ||
         (text.contains('ziua') &&
             text.contains('luna') &&
             text.contains('anul'));

@@ -4,6 +4,6 @@ class BuildInfo {
   static const buildNumber = '11';
   static const buildLabel = String.fromEnvironment(
     'BUILD_LABEL',
-    defaultValue: 'v0.4-doc-template-parser',
+    defaultValue: 'v0.4.1-green-card-real-ocr',
   );
 }

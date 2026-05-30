@@ -12,6 +12,8 @@ import 'package:cleartodrive/platform/ocr/templates/rca_green_card_parser.dart';
 import 'package:cleartodrive/platform/ocr/templates/rca_policy_parser.dart';
 import 'package:cleartodrive/platform/ocr/templates/unknown_document_parser.dart';
 
+import 'package:flutter/foundation.dart';
+
 /// Orchestrates template detection and delegates to format-specific parsers.
 class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
   const RomanianDocumentFieldExtractor();
@@ -43,6 +45,7 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     final helperKey = _resolveHelperKey(parseResult, template);
 
     final preview = ctx.rawText.trim();
+    final normalizedPreview = ctx.normalizedText;
     final diagnostics = OcrExtractionDiagnostics(
       detectedTemplate: template,
       selectedDocumentType: typeHint ?? suggestedType,
@@ -52,8 +55,24 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
       selectedExpiryDate: parseResult.expiryDate,
       selectionReason: parseResult.expirySelectionReason,
       rawTextPreview: preview.length <= 500 ? preview : '${preview.substring(0, 500)}…',
+      normalizedOcrPreview: normalizedPreview.length <= 500
+          ? normalizedPreview
+          : '${normalizedPreview.substring(0, 500)}…',
+      detectedFromDate: parseResult.detectedFromDate,
+      detectedToYear: parseResult.detectedToYear,
       vin: parseResult.vin,
     );
+
+    if (kDebugMode) {
+      debugPrint(
+        'OCR extract template=${template.id} '
+        'typeHint=${typeHint?.name} '
+        'from=${parseResult.detectedFromDate} '
+        'toYear=${parseResult.detectedToYear} '
+        'expiry=${parseResult.expiryDate} '
+        'reason=${parseResult.expirySelectionReason}',
+      );
+    }
 
     final confidence =
         parseResult.confidence ??
@@ -126,8 +145,9 @@ class RomanianDocumentFieldExtractor implements DocumentFieldExtractor {
     DocumentTemplate template,
   ) {
     if (parseResult.helperKey != null) return parseResult.helperKey;
-    if (parseResult.expirySelectionReason ==
-        ExtractionReasons.inferredFromGreenCardToYear) {
+    if (ExtractionReasons.isGreenCardInferredExpiry(
+      parseResult.expirySelectionReason,
+    )) {
       return ExtractionHelperKeys.rcaInferredExpiry;
     }
     if (parseResult.expiryDate != null) {

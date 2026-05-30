@@ -1,7 +1,71 @@
 /// Romanian diacritics-insensitive text normalization for OCR keyword matching.
 abstract final class TextNormalizer {
+  /// Fixes common OCR typos before keyword/date parsing.
+  static String correctForParsing(String input) {
+    var s = input.replaceAll(RegExp(r'[ \t]+'), ' ').trim();
+
+    const earlyAscii = {
+      'ä': 'a',
+      'Ä': 'A',
+      'ö': 'o',
+      'Ö': 'O',
+      'ü': 'u',
+      'Ü': 'U',
+      'â': 'a',
+      'Â': 'A',
+      'ă': 'a',
+      'Ă': 'A',
+      'î': 'i',
+      'Î': 'I',
+      'ș': 's',
+      'Ş': 'S',
+      'ş': 's',
+      'ț': 't',
+      'Ţ': 'T',
+      'ţ': 't',
+    };
+    for (final entry in earlyAscii.entries) {
+      s = s.replaceAll(entry.key, entry.value);
+    }
+
+    s = s.replaceAllMapped(
+      RegExp(r'\bgarte\b', caseSensitive: false),
+      (_) => 'CARTE',
+    );
+    s = s.replaceAllMapped(
+      RegExp(r'internat:onal', caseSensitive: false),
+      (_) => 'INTERNATIONAL',
+    );
+    s = s.replaceAllMapped(
+      RegExp(r'internat\s*onal', caseSensitive: false),
+      (_) => 'INTERNATIONAL',
+    );
+    s = s.replaceAllMapped(
+      RegExp(r'valabiltate', caseSensitive: false),
+      (_) => 'VALABILITATE',
+    );
+    s = s.replaceAllMapped(
+      RegExp(r'\banil\b', caseSensitive: false),
+      (_) => 'Anul',
+    );
+    s = s.replaceAllMapped(
+      RegExp(r'\bani-year\b', caseSensitive: false),
+      (_) => 'Anul-Year',
+    );
+    s = s.replaceAllMapped(
+      RegExp(r'\byaar\b', caseSensitive: false),
+      (_) => 'Year',
+    );
+    s = s.replaceAllMapped(
+      RegExp(r'asigurätor', caseSensitive: false),
+      (_) => 'ASIGURATOR',
+    );
+
+    return s.replaceAll(RegExp(r' {2,}'), ' ');
+  }
+
   static String normalize(String input) {
-    return input
+    return correctForParsing(input)
         .toLowerCase()
         .replaceAll('ă', 'a')
         .replaceAll('â', 'a')

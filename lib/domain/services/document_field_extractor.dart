@@ -13,6 +13,9 @@ class OcrExtractionDiagnostics {
     this.selectedExpiryDate,
     this.selectionReason,
     this.rawTextPreview = '',
+    this.normalizedOcrPreview = '',
+    this.detectedFromDate,
+    this.detectedToYear,
     this.vin,
   });
 
@@ -24,6 +27,9 @@ class OcrExtractionDiagnostics {
   final DateTime? selectedExpiryDate;
   final String? selectionReason;
   final String rawTextPreview;
+  final String normalizedOcrPreview;
+  final DateTime? detectedFromDate;
+  final int? detectedToYear;
   final String? vin;
 }
 
@@ -57,7 +63,7 @@ class ExtractionResult {
   final bool? typeHintPreserved;
 
   bool get expiryDateInferred =>
-      expirySelectionReason == ExtractionReasons.inferredFromGreenCardToYear;
+      ExtractionReasons.isGreenCardInferredExpiry(expirySelectionReason);
 
   bool get hasUsefulData =>
       licensePlate != null ||

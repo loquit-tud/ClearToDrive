@@ -15,6 +15,12 @@ enum DocumentTemplate {
 /// Stable reason codes consumed by confirm UI and diagnostics.
 abstract final class ExtractionReasons {
   static const inferredFromGreenCardToYear = 'inferred_from_green_card_to_year';
+  static const greenCardToYearWithFromDayMonth =
+      'green_card_to_year_with_from_day_month';
+
+  static bool isGreenCardInferredExpiry(String? reason) =>
+      reason == inferredFromGreenCardToYear ||
+      reason == greenCardToYearWithFromDayMonth;
   static const explicitRcaRange = 'explicit_rca_range';
   static const rcaToTable = 'rca_to_table';
   static const rcaPanaLaFullDate = 'rca_pana_la_full_date';

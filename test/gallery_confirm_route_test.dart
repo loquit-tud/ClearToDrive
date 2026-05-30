@@ -231,7 +231,7 @@ void main() {
       imagePath: image.path,
       assistStatus: DocumentAssistStatus.ocrSuccess,
       needsManualReview: true,
-      expirySelectionReason: ExtractionReasons.inferredFromGreenCardToYear,
+      expirySelectionReason: ExtractionReasons.greenCardToYearWithFromDayMonth,
       ocrDiagnostics: OcrExtractionDiagnostics(
         detectedTemplate: DocumentTemplate.rcaGreenCard,
         selectedDocumentType: DocumentType.rca,
@@ -239,7 +239,7 @@ void main() {
         candidateFullDates: [DateTime(2026, 8, 5)],
         candidateToYears: [2027],
         selectedExpiryDate: DateTime(2027, 8, 5),
-        selectionReason: ExtractionReasons.inferredFromGreenCardToYear,
+        selectionReason: ExtractionReasons.greenCardToYearWithFromDayMonth,
         rawTextPreview: 'PANA LA -TO\n2027',
       ),
       helperKey: ExtractionHelperKeys.rcaInferredExpiry,

@@ -46,7 +46,7 @@ class ConfirmDraft {
   final bool? typeHintPreserved;
 
   bool get expiryDateInferred =>
-      expirySelectionReason == ExtractionReasons.inferredFromGreenCardToYear;
+      ExtractionReasons.isGreenCardInferredExpiry(expirySelectionReason);
 
   ConfirmDraft copyWith({
     DocumentType? type,

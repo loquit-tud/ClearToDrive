@@ -53,9 +53,86 @@ void main() {
       expect(result.expiryDate, DateTime(2027, 8, 5));
       expect(
         result.expirySelectionReason,
-        ExtractionReasons.inferredFromGreenCardToYear,
+        ExtractionReasons.greenCardToYearWithFromDayMonth,
       );
       expect(result.typeHintPreserved, isTrue);
+    });
+
+    test('rca_green_card_real_ocr_fragment_infers_expiry_from_to_year', () async {
+      const realOcr = r'''BAN
+1. GARTE INTERNAȚIONALĂ DE ASIGURARE
+PENTRU AUTOVEHICUL
+1. INTERNAT:ONAL MoTOR INSURANCE CARD
+1. CARTE INTERNATIONALE D'ASSURANCE
+AUTOMOBILE
+Ziua-Day
+09
+A
+GR
+NL
+DE LA. FROM
+Luna
+UA
+Month
+BIH
+05
+3, VALABILITATE VALID
+8. VALABILITATEA TERITORIALĂ
+5. Nr. îinmatnculereinregistrare. Registration No.
+Anul-Year Ziua-
+2026
+08 05
+(Aceste douà date incusiv Both dates inclusive)
+B
+UK
+PH85GLD
+Agent
+Day
+BG
+HR
+PL
+PANÄ LA-TO
+Luna-Month Anul-Year.
+Această carte este valabila in tarile...
+RO
+CYH CZ
+MA
+PAMA ASIGURĂRI S.A
+IRL
+2027
+S
+MD
+D
+2. EMISĂ SUB AUTORITATEA:
+SK
+BIROUL ASIGURÄTORILOR DE AUTOVEHICULE DIN ROMANIA
+Country code / Insurer's code/ Number
+MK
+ROI19/A19/PD
+6.Categona vehiculuui
+DK
+A
+031332814
+Marca vehiculului
+BMW''';
+
+      final result = await extractor.extractFromText(
+        ocrText: const OcrTextResult.success(realOcr),
+        typeHint: DocumentType.rca,
+        referenceDate: referenceDate,
+      );
+
+      expect(result.suggestedType, DocumentType.rca);
+      expect(result.detectedTemplate, DocumentTemplate.rcaGreenCard);
+      expect(result.licensePlate, 'PH 85 GLD');
+      expect(result.expiryDate, DateTime(2027, 8, 5));
+      expect(
+        result.expirySelectionReason,
+        ExtractionReasons.greenCardToYearWithFromDayMonth,
+      );
+      expect(result.helperKey, ExtractionHelperKeys.rcaInferredExpiry);
+      expect(result.diagnostics?.detectedFromDate, DateTime(2026, 8, 5));
+      expect(result.diagnostics?.detectedToYear, 2027);
     });
 
     test('noisy ITP in OCR keeps selected RCA type', () async {

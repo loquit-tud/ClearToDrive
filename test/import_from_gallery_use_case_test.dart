@@ -115,9 +115,9 @@ void main() {
       expect(draft.type, DocumentType.rca);
       expect(draft.licensePlate, 'PH 85 GLD');
       expect(draft.expiryDate, DateTime(2027, 8, 5));
-      expect(draft.expirySelectionReason, ExtractionReasons.inferredFromGreenCardToYear);
+      expect(draft.expirySelectionReason, ExtractionReasons.greenCardToYearWithFromDayMonth);
       expect(draft.ocrDiagnostics?.selectionReason,
-          ExtractionReasons.inferredFromGreenCardToYear);
+          ExtractionReasons.greenCardToYearWithFromDayMonth);
     },
   );
 

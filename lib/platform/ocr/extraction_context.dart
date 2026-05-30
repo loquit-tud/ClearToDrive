@@ -6,6 +6,7 @@ import 'package:cleartodrive/platform/ocr/parsing/text_normalizer.dart';
 class OcrExtractionContext {
   OcrExtractionContext({
     required this.rawText,
+    required this.correctedText,
     required this.normalizedText,
     required this.ocrText,
     this.typeHint,
@@ -18,9 +19,11 @@ class OcrExtractionContext {
     DateTime? referenceDate,
   }) {
     final raw = ocrText.text;
+    final corrected = TextNormalizer.correctForParsing(raw);
     return OcrExtractionContext(
       rawText: raw,
-      normalizedText: TextNormalizer.normalize(raw),
+      correctedText: corrected,
+      normalizedText: TextNormalizer.normalize(corrected),
       ocrText: ocrText,
       typeHint: typeHint,
       referenceDate: referenceDate,
@@ -28,6 +31,7 @@ class OcrExtractionContext {
   }
 
   final String rawText;
+  final String correctedText;
   final String normalizedText;
   final OcrTextResult ocrText;
   final DocumentType? typeHint;
@@ -63,6 +67,8 @@ class TemplateParseResult {
     this.helperKey,
     this.candidateFullDates = const [],
     this.candidateToYears = const [],
+    this.detectedFromDate,
+    this.detectedToYear,
     this.needsManualReview = true,
   });
 
@@ -74,5 +80,7 @@ class TemplateParseResult {
   final String? helperKey;
   final List<DateTime> candidateFullDates;
   final List<int> candidateToYears;
+  final DateTime? detectedFromDate;
+  final int? detectedToYear;
   final bool needsManualReview;
 }

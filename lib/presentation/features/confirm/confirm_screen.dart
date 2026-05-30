@@ -411,6 +411,22 @@ class _OcrDiagnosticsPanel extends StatelessWidget {
             value: diagnostics.typeHintPreserved?.toString() ?? '—',
           ),
           _DiagnosticRow(
+            label: 'Normalized OCR preview',
+            value: diagnostics.normalizedOcrPreview.isEmpty
+                ? '—'
+                : diagnostics.normalizedOcrPreview,
+          ),
+          _DiagnosticRow(
+            label: 'Detected FROM date',
+            value: diagnostics.detectedFromDate == null
+                ? '—'
+                : _formatDate(diagnostics.detectedFromDate!),
+          ),
+          _DiagnosticRow(
+            label: 'Detected TO year',
+            value: diagnostics.detectedToYear?.toString() ?? '—',
+          ),
+          _DiagnosticRow(
             label: 'Candidate full dates',
             value: diagnostics.candidateFullDates.isEmpty
                 ? '—'
